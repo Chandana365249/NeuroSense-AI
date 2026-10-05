@@ -10,10 +10,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database.base import Base, utcnow
+from app.database.base import Base, UTCDateTime, utcnow
 
 
 class User(Base):
@@ -25,8 +25,8 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(200))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    last_login_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
 
     sessions: Mapped[list[AnalysisSession]] = relationship(back_populates="user", cascade="all, delete-orphan")
     predictions: Mapped[list[Prediction]] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -39,7 +39,7 @@ class AnalysisSession(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(200))
     description: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
     user: Mapped[User] = relationship(back_populates="sessions")
     predictions: Mapped[list[Prediction]] = relationship(back_populates="session")
@@ -57,8 +57,8 @@ class MLModel(Base):
     feature_count: Mapped[int] = mapped_column(Integer)
     artifact_path: Mapped[str] = mapped_column(String(500))
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
-    trained_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    trained_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
     metrics: Mapped[list[Metric]] = relationship(back_populates="model", cascade="all, delete-orphan")
 
@@ -73,7 +73,7 @@ class Metric(Base):
     level: Mapped[str] = mapped_column(String(20))  # segment | trial
     name: Mapped[str] = mapped_column(String(50))
     value: Mapped[float | None] = mapped_column(Float)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
     model: Mapped[MLModel] = relationship(back_populates="metrics")
 
@@ -92,7 +92,7 @@ class Prediction(Base):
     segments_rejected: Mapped[int] = mapped_column(Integer, default=0)
     input_source: Mapped[str] = mapped_column(String(30))  # upload | deap_reference
     source_reference: Mapped[dict[str, Any] | None] = mapped_column(JSON)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
 
     user: Mapped[User] = relationship(back_populates="predictions")
     session: Mapped[AnalysisSession | None] = relationship(back_populates="predictions")
@@ -108,7 +108,7 @@ class Report(Base):
     report_type: Mapped[str] = mapped_column(String(50))
     title: Mapped[str] = mapped_column(String(300))
     content: Mapped[dict[str, Any]] = mapped_column(JSON)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
 
 
 class AuditLog(Base):
@@ -121,4 +121,4 @@ class AuditLog(Base):
     resource_id: Mapped[str | None] = mapped_column(String(100))
     details: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     ip_address: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)

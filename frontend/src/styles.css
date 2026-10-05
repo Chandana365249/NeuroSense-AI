@@ -6,16 +6,53 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: linear-gradient(135deg, #07111f 0%, #14233d 100%); min-height: 100vh; }
-button, textarea { font: inherit; }
+button, textarea, input, select { font: inherit; }
 .app-shell { display: flex; min-height: 100vh; }
-.sidebar { width: 260px; padding: 24px; background: rgba(4, 10, 22, 0.8); border-right: 1px solid rgba(255,255,255,0.08); }
+.sidebar { width: 260px; flex-shrink: 0; padding: 24px; background: rgba(4, 10, 22, 0.8); border-right: 1px solid rgba(255,255,255,0.08); position: sticky; top: 0; height: 100vh; }
 .sidebar nav { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
 .sidebar a { color: #9ab4d8; text-decoration: none; }
-.main-content { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
-.hero-card, .card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
-.hero-card { display: flex; justify-content: space-between; align-items: center; }
-.hero-actions { display: flex; gap: 10px; }
+.main-content { flex: 1; min-width: 0; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.hero-card, .card, .stat { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+.card h3 { margin-top: 0; }
+.hero-card h2 { margin-top: 0; }
 button { background: linear-gradient(135deg, #17b978, #22c55e); color: white; border: none; border-radius: 999px; padding: 10px 16px; cursor: pointer; }
+button.secondary { background: rgba(255,255,255,0.1); }
+button:disabled { opacity: 0.5; cursor: default; }
+input, select { border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); padding: 9px 12px; background: #07111f; color: white; }
 .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-textarea { width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); padding: 12px; background: #07111f; color: white; }
-@media (max-width: 900px) { .stats-grid { grid-template-columns: 1fr 1fr; } .hero-card { flex-direction: column; align-items: flex-start; gap: 10px; } }
+.stat { display: flex; flex-direction: column; gap: 4px; padding: 16px; }
+.stat-label { color: #9ab4d8; font-size: 0.85rem; }
+.stat-value { font-size: 1.15rem; font-weight: 600; overflow-wrap: anywhere; }
+.stat-hint { color: #9ab4d8; font-size: 0.75rem; overflow-wrap: anywhere; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.muted { color: #9ab4d8; }
+.small { font-size: 0.8rem; }
+.error { color: #fca5a5; }
+.badge { background: #1d4ed8; border-radius: 999px; padding: 2px 8px; font-size: 0.75rem; margin-left: 6px; }
+.auth-row, .row { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+.auth-row { justify-content: space-between; align-items: center; }
+.auth-form { display: flex; flex-direction: column; gap: 10px; max-width: 380px; }
+.tabs { display: flex; gap: 8px; }
+.row label { display: flex; flex-direction: column; gap: 4px; color: #9ab4d8; font-size: 0.85rem; }
+.row label.check { flex-direction: row; align-items: center; gap: 6px; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0 0 12px; }
+.kv dt { color: #9ab4d8; }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+progress { width: 100%; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.table th, .table td { text-align: left; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.table th { color: #9ab4d8; font-weight: 500; }
+.graphs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 12px; }
+.graphs img { width: 100%; border-radius: 10px; background: white; }
+.result { margin-top: 16px; }
+.bars { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.bars li { display: grid; grid-template-columns: 160px 1fr 70px; gap: 10px; align-items: center; }
+.bar { height: 10px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden; }
+.bar span { display: block; height: 100%; background: #22c55e; }
+@media (max-width: 900px) {
+  .app-shell { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: static; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .two-col { grid-template-columns: 1fr; }
+  .card { overflow-x: auto; }
+}

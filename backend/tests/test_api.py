@@ -113,7 +113,8 @@ def test_predict_from_deap_reference_is_stored(trained_client: TestClient) -> No
     assert body["confidence"] == max(body["probabilities"].values())
     assert body["prediction"] == max(body["probabilities"], key=body["probabilities"].get)
     assert body["source_reference"]["self_reported_label"] == "high_valence"
-    assert body["model"]["version"] and body["created_at"] and body["prediction_id"]
+    assert body["model"]["version"] and body["prediction_id"]
+    assert body["created_at"].endswith(("Z", "+00:00")), "timestamps must be timezone-aware UTC (SQLite regression)"
 
     history = trained_client.get("/api/predictions", headers=headers).json()
     assert history["total"] == 1 and history["items"][0]["prediction_id"] == body["prediction_id"]

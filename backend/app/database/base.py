@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import MetaData
+from typing import Any
+
+from sqlalchemy import DateTime, MetaData
+from sqlalchemy.engine import Dialect
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.types import TypeDecorator
 
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
@@ -16,6 +20,23 @@ NAMING_CONVENTION = {
 
 def utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+class UTCDateTime(TypeDecorator[datetime]):
+    """Stores UTC and always returns timezone-aware datetimes (SQLite drops tzinfo on read)."""
+
+    impl = DateTime(timezone=True)
+    cache_ok = True
+
+    def process_bind_param(self, value: datetime | None, dialect: Dialect) -> datetime | None:
+        if value is None:
+            return None
+        return (value if value.tzinfo else value.replace(tzinfo=UTC)).astimezone(UTC)
+
+    def process_result_value(self, value: Any, dialect: Dialect) -> datetime | None:
+        if value is None:
+            return None
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
 class Base(DeclarativeBase):
