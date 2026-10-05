@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+.venv/
+node_modules/
+dist/
+*.log
+
+# Raw dataset is large and licensed separately; never commit it
+Dataset/
+*.dat
+
+# Generated artifacts
+outputs/models/*
+outputs/cache/*
+outputs/predictions/*
+outputs/logs/*
+outputs/pgdata/
+!outputs/**/.gitkeep
+*.sqlite3
+*.db

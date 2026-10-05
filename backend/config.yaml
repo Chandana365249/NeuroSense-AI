@@ -1,0 +1,6 @@
+data_dir: Dataset
+model_dir: outputs/models
+graph_dir: outputs/graphs
+prediction_dir: outputs/predictions
+sampling_rate: 128
+window_size: 128
