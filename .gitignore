@@ -20,3 +20,6 @@ outputs/pgdata/
 !outputs/**/.gitkeep
 *.sqlite3
 *.db
+outputs/graphs/*
+outputs/metrics/*
+!outputs/metrics/dataset_summary.json
