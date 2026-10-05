@@ -19,7 +19,7 @@ DEAP .dat files ─► DEAPDataset (safe loader, validation)
                                     └► evaluation (segment + trial level, LOPO CV, figures)
                                         └► ModelRegistry (outputs/models/<version>, SHA-256)
 
-FastAPI  ─ routes (thin) ─► services ─► repositories ─► SQLAlchemy ─► PostgreSQL (SQLite for dev/tests)
+FastAPI  ─ routes (thin) ─► services ─► repositories ─► SQLAlchemy ─► PostgreSQL 18 (automated tests use temporary SQLite)
           └─ ModelService keeps the active model in memory (loaded once, reloaded after training)
 React (Vite) ─► /api/* (proxied to :8000)
 ```
@@ -246,14 +246,32 @@ npm install
 npm run dev                                  # http://localhost:5173 (proxies /api to :8000)
 ```
 
-**PostgreSQL.** Create the database, put its URL in `.env`, then run `alembic upgrade head`:
+**PostgreSQL.** The project runs on a local PostgreSQL 18 server with this setup:
 
-```sql
-CREATE USER neurosense WITH PASSWORD '...';
-CREATE DATABASE neurosense OWNER neurosense;
-```
+| setting | value |
+|---|---|
+| host | `localhost` |
+| port | `5432` |
+| user | `postgres` |
+| database | `neurosense_ai` |
 
-The URL format is `postgresql+psycopg://neurosense:<password>@localhost:5432/neurosense`.
+1. Create the database (as the `postgres` user):
+
+   ```sql
+   CREATE DATABASE neurosense_ai;
+   ```
+
+2. Set the URL in `backend/.env`:
+
+   ```
+   NEUROSENSE_DATABASE_URL=postgresql+psycopg://postgres:<password>@localhost:5432/neurosense_ai
+   ```
+
+   URL-encode special characters in the password (`@` → `%40`, `:` → `%3A`, `/` → `%2F`, `#` → `%23`, `%` → `%25`).
+
+3. Run `alembic upgrade head`.
+
+4. Check `GET /api/health`. It should report `"database": {"connected": true, "dialect": "postgresql"}`.
 
 ## 13. Tests
 
@@ -287,7 +305,7 @@ To predict, use the dashboard's Prediction card (a held-out participant and tria
 - Training state is held in memory, with one job at a time. A restart loses in-progress status (completed models persist).
 - `pickle`/`joblib` artifacts are trusted only because the registry writes them and verifies their SHA-256.
 - The JWT is stored in `sessionStorage` in the browser. That is acceptable for a prototype, but not hardened against XSS.
-- The PostgreSQL code path uses standard SQLAlchemy and psycopg. The automated tests run on SQLite.
+- The application runs on PostgreSQL, but the automated tests use isolated temporary SQLite databases. PostgreSQL is checked through migrations and the live `/api/health` check, not by the test suite.
 
 ## 16. Future work (Review 3)
 

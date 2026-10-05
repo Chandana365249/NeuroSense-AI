@@ -111,6 +111,13 @@ Figures are in `docs/results/` (confusion matrices, ROC, model comparison, prepr
 
 Foreign keys link predictions to users, sessions and models; metrics and reports to models; and audit logs to users. Migration `98de36d96d48` was tested with upgrade, downgrade and upgrade again, and `alembic check` reports no drift.
 
+**PostgreSQL (verified).**
+- The backend runs on local PostgreSQL 18 (`postgres@localhost:5432/neurosense_ai`, psycopg 3 driver).
+- `alembic upgrade head` created all 7 tables plus `alembic_version`, and `alembic check` reports no drift.
+- The running API's `/api/health` reports `{"connected": true, "dialect": "postgresql"}`.
+- At startup the backend registers the active model and its 46 metric rows in PostgreSQL.
+- The automated tests use isolated temporary SQLite databases by design.
+
 ## 7. Authentication
 
 - bcrypt password hashes.
@@ -164,8 +171,8 @@ Screenshots: `docs/screenshots/1_signed_out.png`, `docs/screenshots/2_signed_in_
 | Baseline trained on real data; held-out test metrics | ✅ |
 | Model and metadata saved | ✅ |
 | FastAPI starts; OpenAPI docs work | ✅ |
-| **PostgreSQL connection works** | ⏳ **Not yet verified.** PostgreSQL is not installed on the development machine. The code uses a PostgreSQL URL plus psycopg, but the app and tests have so far run on SQLite. |
-| Alembic migrations work | ✅ on SQLite; still needs a run against PostgreSQL |
+| PostgreSQL connection works | ✅ Local PostgreSQL 18 (`neurosense_ai`); `/api/health` reports dialect `postgresql` |
+| Alembic migrations work | ✅ `alembic upgrade head` run against PostgreSQL; all 7 tables created; `alembic check` shows no drift |
 | Registration, login, JWT protection | ✅ |
 | Prediction API, metrics API, stored history | ✅ |
 | Frontend consumes real APIs; no fake values | ✅ |
@@ -175,10 +182,9 @@ Screenshots: `docs/screenshots/1_signed_out.png`, `docs/screenshots/2_signed_in_
 
 ## 11. Remaining work for Review 3
 
-1. Run against PostgreSQL (install it, set `NEUROSENSE_DATABASE_URL`, then `alembic upgrade head`).
-2. Per-participant feature normalization, all 32 DEAP participants, and permutation tests against chance.
-3. CNN, LSTM and Transformer models on segments, evaluated with the same participant-aware protocol so the comparison with the baseline is fair.
-4. Explainable AI: permutation importance and SHAP on band-power features, plus scalp topographies.
-5. Complete dashboard (arousal and quadrant targets, EDF/CSV upload with resampling) and deployment.
+1. Per-participant feature normalization, all 32 DEAP participants, and permutation tests against chance.
+2. CNN, LSTM and Transformer models on segments, evaluated with the same participant-aware protocol so the comparison with the baseline is fair.
+3. Explainable AI: permutation importance and SHAP on band-power features, plus scalp topographies.
+4. Complete dashboard (arousal and quadrant targets, EDF/CSV upload with resampling) and deployment.
 
 **Suggested next milestone.** A deep-learning model that beats the 0.51 ± 0.09 leave-one-participant-out baseline under the same protocol, with XAI explanations shown in the dashboard.
