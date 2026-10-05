@@ -1,89 +1,162 @@
+"""Multi-channel EEG preprocessing for DEAP-style recordings.
+
+Steps (each is a method so it can be inspected/plotted on its own):
+1. validate            - input must be (channels, samples), finite, non-flat, long enough for one segment.
+2. remove_baseline     - drop the 3 s pre-stimulus period at the start of each DEAP trial.
+3. bandpass_filter     - zero-phase Butterworth 4-45 Hz. DEAP's preprocessed release is already
+                         band-limited to 4-45 Hz; re-applying it makes arbitrary API input comparable.
+4. remove_artifacts    - per-channel robust clipping at median +/- k*MAD-sigma, so isolated spikes
+                         cannot dominate band power. Clipping (not zeroing) avoids creating steps.
+5. segment             - non-overlapping fixed-length windows (default 4 s); every window inherits
+                         its trial's label. Windows with too many clipped samples are rejected.
+6. normalize           - optional per-channel z-score (for future deep models). The feature-based
+                         baseline does not z-score raw signals because that erases absolute band
+                         power; features are standardized later by a scaler fit on training data only.
+"""
+
 from __future__ import annotations
 
-import math
-from typing import Any
+from dataclasses import dataclass, field
 
 import numpy as np
 from scipy import signal as scipy_signal
-from scipy.stats import entropy as scipy_entropy
+
+from app.core.logging import get_logger
+
+logger = get_logger("preprocessing")
+
+
+class SignalValidationError(ValueError):
+    """Raised when an EEG array cannot be processed."""
+
+
+@dataclass(frozen=True)
+class PreprocessingConfig:
+    sampling_rate: int = 128
+    n_channels: int = 32
+    baseline_seconds: float = 3.0
+    low_hz: float = 4.0
+    high_hz: float = 45.0
+    filter_order: int = 4
+    artifact_clip_sigma: float = 6.0
+    max_clipped_fraction: float = 0.05
+    segment_seconds: float = 4.0
+
+    @property
+    def segment_samples(self) -> int:
+        return int(round(self.segment_seconds * self.sampling_rate))
+
+    @property
+    def baseline_samples(self) -> int:
+        return int(round(self.baseline_seconds * self.sampling_rate))
+
+
+@dataclass
+class PreprocessResult:
+    segments: np.ndarray  # (n_kept, channels, segment_samples)
+    kept_segment_indices: list[int]
+    n_segments_total: int
+    clipped_fraction: float
+    rejected_segment_indices: list[int] = field(default_factory=list)
 
 
 class EEGPreprocessor:
-    """A lightweight EEG preprocessing pipeline tailored to DEAP-style recordings."""
+    def __init__(self, config: PreprocessingConfig | None = None) -> None:
+        self.config = config or PreprocessingConfig()
+        nyquist = 0.5 * self.config.sampling_rate
+        if not 0 < self.config.low_hz < self.config.high_hz < nyquist:
+            raise ValueError("Band-pass edges must satisfy 0 < low < high < Nyquist")
+        self._sos = scipy_signal.butter(
+            self.config.filter_order,
+            [self.config.low_hz, self.config.high_hz],
+            btype="bandpass",
+            fs=self.config.sampling_rate,
+            output="sos",
+        )
 
-    def __init__(self, sampling_rate: int = 128, window_size: int = 128) -> None:
-        self.sampling_rate = sampling_rate
-        self.window_size = window_size
+    @property
+    def sampling_rate(self) -> int:
+        return self.config.sampling_rate
 
-    def load_signal(self, data: np.ndarray) -> np.ndarray:
-        arr = np.asarray(data, dtype=np.float32)
-        if arr.ndim == 1:
-            arr = arr.reshape(-1, 1)
+    def load_signal(self, data: np.ndarray | list) -> np.ndarray:
+        return self.validate(data)
+
+    def validate(self, data: np.ndarray | list) -> np.ndarray:
+        try:
+            arr = np.asarray(data, dtype=np.float64)
+        except (TypeError, ValueError) as exc:
+            raise SignalValidationError("EEG must be a numeric (channels, samples) array") from exc
+        if arr.ndim != 2:
+            raise SignalValidationError(f"EEG must be 2-D (channels, samples), got shape {arr.shape}")
+        if arr.shape[0] != self.config.n_channels:
+            raise SignalValidationError(
+                f"Expected {self.config.n_channels} EEG channels in DEAP order, got {arr.shape[0]}"
+            )
+        if arr.shape[1] < self.config.segment_samples:
+            raise SignalValidationError(
+                f"Need at least {self.config.segment_samples} samples "
+                f"({self.config.segment_seconds} s at {self.config.sampling_rate} Hz), got {arr.shape[1]}"
+            )
+        if not np.isfinite(arr).all():
+            raise SignalValidationError("EEG contains NaN or infinite values")
+        if np.all(arr.std(axis=1) == 0):
+            raise SignalValidationError("EEG is flat on every channel")
         return arr
 
-    def bandpass_filter(self, signal: np.ndarray) -> np.ndarray:
-        nyquist = 0.5 * self.sampling_rate
-        low = 0.5 / nyquist
-        high = 45.0 / nyquist
-        b, a = scipy_signal.butter(4, [low, high], btype="band")
-        return scipy_signal.filtfilt(b, a, signal, axis=0)
+    def remove_baseline(self, eeg: np.ndarray) -> np.ndarray:
+        n = self.config.baseline_samples
+        if eeg.shape[-1] - n < self.config.segment_samples:
+            raise SignalValidationError("Signal is too short once the pre-stimulus baseline is removed")
+        return eeg[..., n:]
 
-    def remove_artifacts(self, signal: np.ndarray) -> np.ndarray:
-        signal = np.asarray(signal, dtype=np.float32)
-        if signal.ndim == 1:
-            signal = signal.reshape(-1, 1)
-        std = np.std(signal)
-        threshold = 5 * std
-        mask = np.abs(signal) > threshold
-        signal = signal.copy()
-        signal[mask] = 0.0
-        return signal
+    def bandpass_filter(self, eeg: np.ndarray) -> np.ndarray:
+        return scipy_signal.sosfiltfilt(self._sos, eeg, axis=-1)
 
-    def normalize(self, signal: np.ndarray) -> np.ndarray:
-        signal = np.asarray(signal, dtype=np.float32)
-        if signal.size == 0:
-            return signal
-        mean = np.mean(signal)
-        std = np.std(signal)
-        if std == 0:
-            return np.zeros_like(signal, dtype=np.float32)
-        return (signal - mean) / std
+    def remove_artifacts(self, eeg: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Clip each channel to median +/- k * robust sigma. Returns (clipped, boolean clip mask)."""
+        median = np.median(eeg, axis=-1, keepdims=True)
+        mad = np.median(np.abs(eeg - median), axis=-1, keepdims=True)
+        sigma = 1.4826 * mad
+        sigma[sigma == 0] = np.inf
+        limit = self.config.artifact_clip_sigma * sigma
+        lower, upper = median - limit, median + limit
+        mask = (eeg < lower) | (eeg > upper)
+        return np.clip(eeg, lower, upper), mask
 
-    def segment(self, signal: np.ndarray) -> list[np.ndarray]:
-        if signal.ndim == 1:
-            signal = signal.reshape(-1, 1)
-        segments: list[np.ndarray] = []
-        for start in range(0, len(signal) - self.window_size + 1, self.window_size):
-            segments.append(signal[start : start + self.window_size])
-        if not segments:
-            segments.append(signal[: self.window_size])
-        return segments
+    def normalize(self, eeg: np.ndarray) -> np.ndarray:
+        mean = eeg.mean(axis=-1, keepdims=True)
+        std = eeg.std(axis=-1, keepdims=True)
+        std[std == 0] = 1.0
+        return (eeg - mean) / std
 
-    def extract_features(self, signal: np.ndarray) -> dict[str, Any]:
-        signal = self.load_signal(signal)
-        filtered = self.bandpass_filter(signal)
-        cleaned = self.remove_artifacts(filtered)
-        normalized = self.normalize(cleaned)
-        segments = self.segment(normalized.reshape(-1))
+    def segment(self, eeg: np.ndarray) -> np.ndarray:
+        """(channels, samples) -> (n_segments, channels, segment_samples); trailing remainder is dropped."""
+        seg = self.config.segment_samples
+        n = eeg.shape[-1] // seg
+        if n == 0:
+            raise SignalValidationError("Signal shorter than one segment")
+        trimmed = eeg[:, : n * seg]
+        return trimmed.reshape(eeg.shape[0], n, seg).transpose(1, 0, 2)
 
-        features: dict[str, Any] = {}
-        values = np.concatenate([seg for seg in segments if seg.size > 0])
-        features["mean"] = float(np.mean(values))
-        features["variance"] = float(np.var(values))
-        features["std"] = float(np.std(values))
-        features["entropy"] = float(scipy_entropy(values + 1e-8))
+    def preprocess(self, eeg: np.ndarray | list, has_baseline: bool = False) -> PreprocessResult:
+        arr = self.validate(eeg)
+        if has_baseline:
+            arr = self.remove_baseline(arr)
+        filtered = self.bandpass_filter(arr)
+        cleaned, clip_mask = self.remove_artifacts(filtered)
+        segments = self.segment(cleaned)
+        mask_segments = self.segment(clip_mask.astype(np.float32))
+        clipped_per_segment = mask_segments.mean(axis=(1, 2))
 
-        band_power: dict[str, float] = {}
-        freqs, psd = scipy_signal.welch(values, fs=self.sampling_rate)
-        for band, (low, high) in {
-            "delta": (0.5, 4.0),
-            "theta": (4.0, 8.0),
-            "alpha": (8.0, 13.0),
-            "beta": (13.0, 30.0),
-            "gamma": (30.0, 45.0),
-        }.items():
-            mask = (freqs >= low) & (freqs <= high)
-            band_power[band] = float(np.trapz(psd[mask], freqs[mask])) if np.any(mask) else 0.0
-        features["band_power"] = band_power
-        features["psd"] = {"freqs": freqs.tolist(), "psd": psd.tolist()}
-        return features
+        keep = clipped_per_segment <= self.config.max_clipped_fraction
+        kept = [i for i, k in enumerate(keep) if k]
+        rejected = [i for i, k in enumerate(keep) if not k]
+        if rejected:
+            logger.debug("Rejected segments with excessive clipping", extra={"rejected": rejected})
+        return PreprocessResult(
+            segments=segments[keep].astype(np.float32),
+            kept_segment_indices=kept,
+            n_segments_total=int(segments.shape[0]),
+            clipped_fraction=float(clip_mask.mean()),
+            rejected_segment_indices=rejected,
+        )
