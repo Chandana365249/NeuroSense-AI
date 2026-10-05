@@ -158,11 +158,12 @@ class BaselineTrainer:
             "disclaimer": DISCLAIMER,
         }
         self.registry.save(version, final_model, metadata, activate=True)
-        self.reporter.save_metrics(metadata | {"feature_schema": {"version": FEATURE_VERSION, "count": len(table.feature_names)}},
+        saved = self.registry.metadata(version)
+        self.reporter.save_metrics(saved | {"feature_schema": {"version": FEATURE_VERSION, "count": len(table.feature_names)}},
                                    f"{version}.json")
         report("Done", 1.0)
         logger.info("Training finished", extra={"version": version, "test_f1_macro": test_seg["f1_macro"]})
-        return TrainingResult(version=version, algorithm=best, metadata=self.registry.metadata(version))
+        return TrainingResult(version=version, algorithm=best, metadata=saved)
 
     def _cross_validate(self, algorithm: str, table: FeatureTable, y: np.ndarray) -> dict[str, Any]:
         factory = candidate_models(self.settings.random_seed)[algorithm]

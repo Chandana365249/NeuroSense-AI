@@ -35,6 +35,7 @@ _ALLOWED_GLOBALS = {
     ("numpy._core.multiarray", "_reconstruct"),
     ("numpy", "ndarray"),
     ("numpy", "dtype"),
+    ("_codecs", "encode"),  # used by Python 3 protocol-2 pickles to store bytes; only converts str -> bytes
 }
 
 
