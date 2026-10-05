@@ -1,0 +1,243 @@
+{
+  "dataset_dir": "C:\\Users\\gandl\\Documents\\NeuroSense_AI\\Dataset\\DEAP\\archive",
+  "sampling_rate_hz": 128,
+  "baseline_seconds": 3.0,
+  "participants_found": 12,
+  "participants_valid": 12,
+  "total_trials": 480,
+  "eeg_channels_used": 32,
+  "eeg_channel_names": [
+    "Fp1",
+    "AF3",
+    "F3",
+    "F7",
+    "FC5",
+    "FC1",
+    "C3",
+    "T7",
+    "CP5",
+    "CP1",
+    "P3",
+    "P7",
+    "PO3",
+    "O1",
+    "Oz",
+    "Pz",
+    "Fp2",
+    "AF4",
+    "Fz",
+    "F4",
+    "F8",
+    "FC6",
+    "FC2",
+    "Cz",
+    "C4",
+    "T8",
+    "CP6",
+    "CP2",
+    "P4",
+    "P8",
+    "PO4",
+    "O2"
+  ],
+  "rating_names": [
+    "valence",
+    "arousal",
+    "dominance",
+    "liking"
+  ],
+  "rating_ranges": {
+    "valence": [
+      1.0,
+      9.0
+    ],
+    "arousal": [
+      1.0,
+      9.0
+    ],
+    "dominance": [
+      1.0,
+      9.0
+    ],
+    "liking": [
+      1.0,
+      9.0
+    ]
+  },
+  "rating_means": {
+    "valence": 5.212,
+    "arousal": 5.07,
+    "dominance": 5.194,
+    "liking": 5.711
+  },
+  "files": [
+    {
+      "participant_id": "s01",
+      "file": "s01.dat",
+      "ok": true,
+      "size_bytes": 103220683,
+      "trials": 40,
+      "channels": 40,
+      "samples": 8064,
+      "label_shape": [
+        40,
+        4
+      ],
+      "error": null
+    },
+    {
+      "participant_id": "s02",
+      "file": "s02.dat",
+      "ok": true,
+      "size_bytes": 103220683,
+      "trials": 40,
+      "channels": 40,
+      "samples": 8064,
+      "label_shape": [
+        40,
+        4
+      ],
+      "error": null
+    },
+    {
+      "participant_id": "s03",
+      "file": "s03.dat",
+      "ok": true,
+      "size_bytes": 103220683,
+      "trials": 40,
+      "channels": 40,
+      "samples": 8064,
+      "label_shape": [
+        40,
+        4
+      ],
+      "error": null
+    },
+    {
+      "participant_id": "s05",
+      "file": "s05.dat",
+      "ok": true,
+      "size_bytes": 103220683,
+      "trials": 40,
+      "channels": 40,
+      "samples": 8064,
+      "label_shape": [
+        40,
+        4
+      ],
+      "error": null
+    },
+    {
+      "participant_id": "s07",
+      "file": "s07.dat",
+      "ok": true,
+      "size_bytes": 103220683,
+      "trials": 40,
+      "channels": 40,
+      "samples": 8064,
+      "label_shape": [
+        40,
+        4
+      ],
+      "error": null
+    },
+    {
+      "participant_id": "s08",
+      "file": "s08.dat",
+      "ok": true,
+      "size_bytes": 103220683,
+      "trials": 40,
+      "channels": 40,
+      "samples": 8064,
+      "label_shape": [
+        40,
+        4
+      ],
+      "error": null
+    },
+    {
+      "participant_id": "s09",
+      "file": "s09.dat",
+      "ok": true,
+      "size_bytes": 103220683,
+      "trials": 40,
+      "channels": 40,
+      "samples": 8064,
+      "label_shape": [
+        40,
+        4
+      ],
+      "error": null
+    },
+    {
+      "participant_id": "s11",
+      "file": "s11.dat",
+      "ok": true,
+      "size_bytes": 103220683,
+      "trials": 40,
+      "channels": 40,
+      "samples": 8064,
+      "label_shape": [
+        40,
+        4
+      ],
+      "error": null
+    },
+    {
+      "participant_id": "s15",
+      "file": "s15.dat",
+      "ok": true,
+      "size_bytes": 103220683,
+      "trials": 40,
+      "channels": 40,
+      "samples": 8064,
+      "label_shape": [
+        40,
+        4
+      ],
+      "error": null
+    },
+    {
+      "participant_id": "s16",
+      "file": "s16.dat",
+      "ok": true,
+      "size_bytes": 103220683,
+      "trials": 40,
+      "channels": 40,
+      "samples": 8064,
+      "label_shape": [
+        40,
+        4
+      ],
+      "error": null
+    },
+    {
+      "participant_id": "s22",
+      "file": "s22.dat",
+      "ok": true,
+      "size_bytes": 103220683,
+      "trials": 40,
+      "channels": 40,
+      "samples": 8064,
+      "label_shape": [
+        40,
+        4
+      ],
+      "error": null
+    },
+    {
+      "participant_id": "s25",
+      "file": "s25.dat",
+      "ok": true,
+      "size_bytes": 103220683,
+      "trials": 40,
+      "channels": 40,
+      "samples": 8064,
+      "label_shape": [
+        40,
+        4
+      ],
+      "error": null
+    }
+  ]
+}
