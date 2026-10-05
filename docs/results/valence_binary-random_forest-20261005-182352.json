@@ -1,0 +1,553 @@
+{
+  "name": "NeuroSense random_forest (valence_binary)",
+  "algorithm": "random_forest",
+  "algorithm_description": "StandardScaler + RandomForest (300 trees, min_samples_leaf=5, balanced class weights)",
+  "trained_at": "2026-10-05T18:23:52.342135+00:00",
+  "training_seconds": 60.5,
+  "label": {
+    "strategy": "valence_binary",
+    "description": "Binary valence: high_valence if self-reported valence > 5.0 (1-9 scale), else low_valence",
+    "valence_threshold": 5.0,
+    "arousal_threshold": 5.0
+  },
+  "class_labels": [
+    "high_valence",
+    "low_valence"
+  ],
+  "feature_schema": {
+    "version": "v1",
+    "count": 440
+  },
+  "preprocessing": {
+    "sampling_rate": 128,
+    "n_channels": 32,
+    "baseline_seconds": 3.0,
+    "low_hz": 4.0,
+    "high_hz": 45.0,
+    "filter_order": 4,
+    "artifact_clip_sigma": 6.0,
+    "max_clipped_fraction": 0.05,
+    "segment_seconds": 4.0
+  },
+  "split": {
+    "train": [
+      "s02",
+      "s03",
+      "s05",
+      "s07",
+      "s08",
+      "s15",
+      "s22"
+    ],
+    "validation": [
+      "s16",
+      "s25"
+    ],
+    "test": [
+      "s01",
+      "s09",
+      "s11"
+    ],
+    "seed": 42,
+    "segments": {
+      "train": 4073,
+      "validation": 1185,
+      "test": 1788
+    },
+    "strategy": "participant-aware (whole participants per split)"
+  },
+  "dataset": {
+    "dir": "C:\\Users\\gandl\\Documents\\NeuroSense_AI\\Dataset\\DEAP\\archive",
+    "fingerprint": "3c5359083bc90ae5",
+    "participants": [
+      "s01",
+      "s02",
+      "s03",
+      "s05",
+      "s07",
+      "s08",
+      "s09",
+      "s11",
+      "s15",
+      "s16",
+      "s22",
+      "s25"
+    ],
+    "segments": 7046,
+    "rejected_segments": 154,
+    "class_balance": {
+      "high_valence": 3714,
+      "low_valence": 3332
+    }
+  },
+  "training_config": {
+    "random_seed": 42,
+    "selection_metric": "validation segment f1_macro",
+    "candidates": [
+      "majority_baseline",
+      "random_forest",
+      "svm_rbf",
+      "xgboost"
+    ],
+    "final_fit": "train + validation participants"
+  },
+  "validation": {
+    "majority_baseline": {
+      "segment": {
+        "n_samples": 1185,
+        "accuracy": 0.4253164556962025,
+        "balanced_accuracy": 0.5,
+        "precision_macro": 0.21265822784810126,
+        "recall_macro": 0.5,
+        "f1_macro": 0.2984014209591474,
+        "precision_weighted": 0.18089408748597982,
+        "recall_weighted": 0.4253164556962025,
+        "f1_weighted": 0.2538300694741102,
+        "confusion_matrix": [
+          [
+            504,
+            0
+          ],
+          [
+            681,
+            0
+          ]
+        ],
+        "class_order": [
+          "high_valence",
+          "low_valence"
+        ],
+        "support": {
+          "high_valence": 504,
+          "low_valence": 681
+        },
+        "roc_auc": 0.5
+      },
+      "trial": {
+        "n_samples": 80,
+        "accuracy": 0.425,
+        "balanced_accuracy": 0.5,
+        "precision_macro": 0.2125,
+        "recall_macro": 0.5,
+        "f1_macro": 0.2982456140350877,
+        "precision_weighted": 0.18062499999999998,
+        "recall_weighted": 0.425,
+        "f1_weighted": 0.2535087719298245,
+        "confusion_matrix": [
+          [
+            34,
+            0
+          ],
+          [
+            46,
+            0
+          ]
+        ],
+        "class_order": [
+          "high_valence",
+          "low_valence"
+        ],
+        "support": {
+          "high_valence": 34,
+          "low_valence": 46
+        },
+        "roc_auc": 0.5
+      }
+    },
+    "random_forest": {
+      "segment": {
+        "n_samples": 1185,
+        "accuracy": 0.46244725738396625,
+        "balanced_accuracy": 0.5145138451856514,
+        "precision_macro": 0.5272890120846252,
+        "recall_macro": 0.5145138451856514,
+        "f1_macro": 0.4195915392132966,
+        "precision_weighted": 0.5412682941577271,
+        "recall_weighted": 0.46244725738396625,
+        "f1_weighted": 0.3960342034486739,
+        "confusion_matrix": [
+          [
+            435,
+            69
+          ],
+          [
+            568,
+            113
+          ]
+        ],
+        "class_order": [
+          "high_valence",
+          "low_valence"
+        ],
+        "support": {
+          "high_valence": 504,
+          "low_valence": 681
+        },
+        "roc_auc": 0.5360522574178962
+      },
+      "trial": {
+        "n_samples": 80,
+        "accuracy": 0.425,
+        "balanced_accuracy": 0.49232736572890023,
+        "precision_macro": 0.4605263157894737,
+        "recall_macro": 0.49232736572890023,
+        "f1_macro": 0.3309090909090909,
+        "precision_weighted": 0.46644736842105256,
+        "recall_weighted": 0.425,
+        "f1_weighted": 0.29327272727272724,
+        "confusion_matrix": [
+          [
+            32,
+            2
+          ],
+          [
+            44,
+            2
+          ]
+        ],
+        "class_order": [
+          "high_valence",
+          "low_valence"
+        ],
+        "support": {
+          "high_valence": 34,
+          "low_valence": 46
+        },
+        "roc_auc": 0.5556265984654731
+      }
+    },
+    "svm_rbf": {
+      "segment": {
+        "n_samples": 1185,
+        "accuracy": 0.4253164556962025,
+        "balanced_accuracy": 0.5,
+        "precision_macro": 0.21265822784810126,
+        "recall_macro": 0.5,
+        "f1_macro": 0.2984014209591474,
+        "precision_weighted": 0.18089408748597982,
+        "recall_weighted": 0.4253164556962025,
+        "f1_weighted": 0.2538300694741102,
+        "confusion_matrix": [
+          [
+            504,
+            0
+          ],
+          [
+            681,
+            0
+          ]
+        ],
+        "class_order": [
+          "high_valence",
+          "low_valence"
+        ],
+        "support": {
+          "high_valence": 504,
+          "low_valence": 681
+        },
+        "roc_auc": 0.4878009696291634
+      },
+      "trial": {
+        "n_samples": 80,
+        "accuracy": 0.425,
+        "balanced_accuracy": 0.5,
+        "precision_macro": 0.2125,
+        "recall_macro": 0.5,
+        "f1_macro": 0.2982456140350877,
+        "precision_weighted": 0.18062499999999998,
+        "recall_weighted": 0.425,
+        "f1_weighted": 0.2535087719298245,
+        "confusion_matrix": [
+          [
+            34,
+            0
+          ],
+          [
+            46,
+            0
+          ]
+        ],
+        "class_order": [
+          "high_valence",
+          "low_valence"
+        ],
+        "support": {
+          "high_valence": 34,
+          "low_valence": 46
+        },
+        "roc_auc": 0.4948849104859335
+      }
+    },
+    "xgboost": {
+      "segment": {
+        "n_samples": 1185,
+        "accuracy": 0.4573839662447257,
+        "balanced_accuracy": 0.5201646737990351,
+        "precision_macro": 0.5649700542590541,
+        "recall_macro": 0.5201646737990351,
+        "f1_macro": 0.38521723203933556,
+        "precision_weighted": 0.5842245917499905,
+        "recall_weighted": 0.4573839662447257,
+        "f1_weighted": 0.35375537993501516,
+        "confusion_matrix": [
+          [
+            474,
+            30
+          ],
+          [
+            613,
+            68
+          ]
+        ],
+        "class_order": [
+          "high_valence",
+          "low_valence"
+        ],
+        "support": {
+          "high_valence": 504,
+          "low_valence": 681
+        },
+        "roc_auc": 0.6221855115026921
+      },
+      "trial": {
+        "n_samples": 80,
+        "accuracy": 0.4375,
+        "balanced_accuracy": 0.5108695652173914,
+        "precision_macro": 0.7151898734177216,
+        "recall_macro": 0.5108695652173914,
+        "f1_macro": 0.32216155149689324,
+        "precision_weighted": 0.7579113924050633,
+        "recall_weighted": 0.4375,
+        "f1_weighted": 0.28022029749576355,
+        "confusion_matrix": [
+          [
+            34,
+            0
+          ],
+          [
+            45,
+            1
+          ]
+        ],
+        "class_order": [
+          "high_valence",
+          "low_valence"
+        ],
+        "support": {
+          "high_valence": 34,
+          "low_valence": 46
+        },
+        "roc_auc": 0.6585677749360613
+      }
+    }
+  },
+  "test": {
+    "segment": {
+      "n_samples": 1788,
+      "accuracy": 0.5480984340044742,
+      "balanced_accuracy": 0.5440153234212775,
+      "precision_macro": 0.5451581975071907,
+      "recall_macro": 0.5440153234212775,
+      "f1_macro": 0.5427150502578413,
+      "precision_weighted": 0.546046188395632,
+      "recall_weighted": 0.5480984340044742,
+      "f1_weighted": 0.5452124963258669,
+      "confusion_matrix": [
+        [
+          587,
+          352
+        ],
+        [
+          456,
+          393
+        ]
+      ],
+      "class_order": [
+        "high_valence",
+        "low_valence"
+      ],
+      "support": {
+        "high_valence": 939,
+        "low_valence": 849
+      },
+      "roc_auc": 0.5365267162645774
+    },
+    "trial": {
+      "n_samples": 120,
+      "accuracy": 0.5916666666666667,
+      "balanced_accuracy": 0.5902255639097744,
+      "precision_macro": 0.5904017857142857,
+      "recall_macro": 0.5902255639097744,
+      "f1_macro": 0.590272454881193,
+      "precision_weighted": 0.5913504464285714,
+      "recall_weighted": 0.5916666666666667,
+      "f1_weighted": 0.591467493554456,
+      "confusion_matrix": [
+        [
+          39,
+          24
+        ],
+        [
+          25,
+          32
+        ]
+      ],
+      "class_order": [
+        "high_valence",
+        "low_valence"
+      ],
+      "support": {
+        "high_valence": 63,
+        "low_valence": 57
+      },
+      "roc_auc": 0.5647451963241437
+    }
+  },
+  "test_reference_majority": {
+    "segment": {
+      "n_samples": 1788,
+      "accuracy": 0.5251677852348994,
+      "balanced_accuracy": 0.5,
+      "precision_macro": 0.2625838926174497,
+      "recall_macro": 0.5,
+      "f1_macro": 0.34433443344334436,
+      "precision_weighted": 0.27580120264852936,
+      "recall_weighted": 0.5251677852348994,
+      "f1_weighted": 0.36166670358311,
+      "confusion_matrix": [
+        [
+          939,
+          0
+        ],
+        [
+          849,
+          0
+        ]
+      ],
+      "class_order": [
+        "high_valence",
+        "low_valence"
+      ],
+      "support": {
+        "high_valence": 939,
+        "low_valence": 849
+      },
+      "roc_auc": 0.5
+    },
+    "trial": {
+      "n_samples": 120,
+      "accuracy": 0.525,
+      "balanced_accuracy": 0.5,
+      "precision_macro": 0.2625,
+      "recall_macro": 0.5,
+      "f1_macro": 0.3442622950819672,
+      "precision_weighted": 0.275625,
+      "recall_weighted": 0.525,
+      "f1_weighted": 0.3614754098360656,
+      "confusion_matrix": [
+        [
+          63,
+          0
+        ],
+        [
+          57,
+          0
+        ]
+      ],
+      "class_order": [
+        "high_valence",
+        "low_valence"
+      ],
+      "support": {
+        "high_valence": 63,
+        "low_valence": 57
+      },
+      "roc_auc": 0.5
+    }
+  },
+  "cross_validation": {
+    "scheme": "leave-one-participant-out over train+validation participants",
+    "folds": [
+      {
+        "participant": "s02",
+        "segment_accuracy": 0.45996275605214154,
+        "segment_f1_macro": 0.3872371568874339,
+        "trial_accuracy": 0.45,
+        "roc_auc": 0.4880845575866323
+      },
+      {
+        "participant": "s03",
+        "segment_accuracy": 0.4735915492957746,
+        "segment_f1_macro": 0.4652358596020568,
+        "trial_accuracy": 0.4,
+        "roc_auc": 0.4599386080310719
+      },
+      {
+        "participant": "s05",
+        "segment_accuracy": 0.5899159663865546,
+        "segment_f1_macro": 0.43847082121418407,
+        "trial_accuracy": 0.6,
+        "roc_auc": 0.5661080074487896
+      },
+      {
+        "participant": "s07",
+        "segment_accuracy": 0.7,
+        "segment_f1_macro": 0.41708586109371965,
+        "trial_accuracy": 0.7,
+        "roc_auc": 0.6295767195767196
+      },
+      {
+        "participant": "s08",
+        "segment_accuracy": 0.448566610455312,
+        "segment_f1_macro": 0.39122203908641395,
+        "trial_accuracy": 0.475,
+        "roc_auc": 0.4557634902411022
+      },
+      {
+        "participant": "s15",
+        "segment_accuracy": 0.5699831365935919,
+        "segment_f1_macro": 0.48574897381048737,
+        "trial_accuracy": 0.525,
+        "roc_auc": 0.7084015834015834
+      },
+      {
+        "participant": "s16",
+        "segment_accuracy": 0.41304347826086957,
+        "segment_f1_macro": 0.3730701337801633,
+        "trial_accuracy": 0.375,
+        "roc_auc": 0.5489425081918379
+      },
+      {
+        "participant": "s22",
+        "segment_accuracy": 0.46337308347529815,
+        "segment_f1_macro": 0.463067662098945,
+        "trial_accuracy": 0.525,
+        "roc_auc": 0.5086200822078685
+      },
+      {
+        "participant": "s25",
+        "segment_accuracy": 0.4752981260647359,
+        "segment_f1_macro": 0.32217090069284066,
+        "trial_accuracy": 0.475,
+        "roc_auc": 0.4757482660708467
+      }
+    ],
+    "segment_accuracy_mean": 0.5104149673982532,
+    "segment_accuracy_std": 0.08593615685827327,
+    "segment_f1_macro_mean": 0.41592326758513826,
+    "segment_f1_macro_std": 0.04955203743407571
+  },
+  "artifacts": {
+    "graphs": {
+      "confusion_matrix_segment": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\graphs\\valence_binary-random_forest-20261005-182352_cm_segment.png",
+      "confusion_matrix_trial": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\graphs\\valence_binary-random_forest-20261005-182352_cm_trial.png",
+      "roc_curve": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\graphs\\valence_binary-random_forest-20261005-182352_roc.png",
+      "model_comparison": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\graphs\\valence_binary-random_forest-20261005-182352_validation_comparison.png"
+    },
+    "test_predictions": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\predictions\\valence_binary-random_forest-20261005-182352_test_predictions.csv"
+  },
+  "disclaimer": "Research prototype. Predictions estimate a participant's self-reported affect category from EEG features; they are not a diagnosis of any medical or psychological condition.",
+  "version": "valence_binary-random_forest-20261005-182352",
+  "model_path": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\models\\valence_binary-random_forest-20261005-182352\\model.joblib",
+  "sha256": "34cf2870e5bca15b58431621863d3f58de26b2089537f66e1ebc7bfcd6adae4b"
+}

@@ -1,0 +1,40 @@
+﻿[  5%] Extracting features from DEAP recordings
+[ 15%] Fitting majority_baseline on training participants
+[ 25%] Fitting random_forest on training participants
+[ 35%] Fitting svm_rbf on training participants
+[ 45%] Fitting xgboost on training participants
+[ 60%] Refitting random_forest on train + validation participants
+[ 70%] Evaluating on held-out test participants
+[ 78%] Leave-one-participant-out CV for random_forest
+[ 90%] Saving model, metrics and figures
+[100%] Done
+
+Model version : valence_binary-random_forest-20261005-182352
+Label         : Binary valence: high_valence if self-reported valence > 5.0 (1-9 scale), else low_valence
+Split         : train ['s02', 's03', 's05', 's07', 's08', 's15', 's22'] | val ['s16', 's25'] | test ['s01', 's09', 's11']
+Segments      : {'train': 4073, 'validation': 1185, 'test': 1788}
+
+Validation participants (model selection):
+  majority_baseline  acc 0.425 | bal-acc 0.500 | macro-F1 0.298 | prec 0.213 | rec 0.500 | AUC 0.500 | n=1185
+  random_forest      acc 0.462 | bal-acc 0.515 | macro-F1 0.420 | prec 0.527 | rec 0.515 | AUC 0.536 | n=1185
+  svm_rbf            acc 0.425 | bal-acc 0.500 | macro-F1 0.298 | prec 0.213 | rec 0.500 | AUC 0.488 | n=1185
+  xgboost            acc 0.457 | bal-acc 0.520 | macro-F1 0.385 | prec 0.565 | rec 0.520 | AUC 0.622 | n=1185
+
+Held-out TEST participants, selected model = random_forest
+  segment level      acc 0.548 | bal-acc 0.544 | macro-F1 0.543 | prec 0.545 | rec 0.544 | AUC 0.537 | n=1788
+  trial level        acc 0.592 | bal-acc 0.590 | macro-F1 0.590 | prec 0.590 | rec 0.590 | AUC 0.565 | n=120
+  majority reference acc 0.525 | bal-acc 0.500 | macro-F1 0.344 | prec 0.263 | rec 0.500 | AUC 0.500 | n=1788
+  confusion (segment, rows=true ['high_valence', 'low_valence']): [[587, 352], [456, 393]]
+
+Leave-one-participant-out CV (9 folds): accuracy 0.510 +/- 0.086, macro-F1 0.416 +/- 0.050
+  s02: acc 0.460  F1 0.387
+  s03: acc 0.474  F1 0.465
+  s05: acc 0.590  F1 0.438
+  s07: acc 0.700  F1 0.417
+  s08: acc 0.449  F1 0.391
+  s15: acc 0.570  F1 0.486
+  s16: acc 0.413  F1 0.373
+  s22: acc 0.463  F1 0.463
+  s25: acc 0.475  F1 0.322
+
+Artifacts: C:\Users\gandl\OneDrive\Documents\NeuroSense_AI\outputs\models\valence_binary-random_forest-20261005-182352\model.joblib
