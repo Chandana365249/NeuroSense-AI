@@ -1,0 +1,140 @@
+{
+  "created_at": "2026-10-06T05:06:15.023238+00:00",
+  "task": "Binary valence: high_valence if self-reported valence > 5.0 (1-9 scale), else low_valence",
+  "split": {
+    "train": [
+      "s02",
+      "s03",
+      "s05",
+      "s07",
+      "s08",
+      "s15",
+      "s22"
+    ],
+    "validation": [
+      "s16",
+      "s25"
+    ],
+    "test": [
+      "s01",
+      "s09",
+      "s11"
+    ]
+  },
+  "test_segments": 1788,
+  "test_trials": 120,
+  "comparability_checks": {
+    "same participant split": true,
+    "same label strategy/threshold": true,
+    "same dataset fingerprint": true,
+    "same test segment count": true
+  },
+  "protocol": "All models: selection on validation participants only; final model fit on train+validation; one evaluation on the held-out test participants. SVM/XGBoost test scores are reported for comparison only and were not used to choose anything.",
+  "models": {
+    "Random Forest": {
+      "source": "valence_binary-random_forest-20261005-182352",
+      "test_segment": {
+        "accuracy": 0.5480984340044742,
+        "balanced_accuracy": 0.5440153234212775,
+        "f1_macro": 0.5427150502578413,
+        "roc_auc": 0.5365267162645774
+      },
+      "test_trial": {
+        "accuracy": 0.5916666666666667,
+        "balanced_accuracy": 0.5902255639097744,
+        "f1_macro": 0.590272454881193,
+        "roc_auc": 0.5647451963241437
+      },
+      "validation_segment": {
+        "accuracy": 0.46244725738396625,
+        "balanced_accuracy": 0.5145138451856514,
+        "f1_macro": 0.4195915392132966,
+        "roc_auc": 0.5360522574178962
+      }
+    },
+    "SVM (RBF)": {
+      "source": "Review 2 config refit on train+validation (svm_rbf)",
+      "test_segment": {
+        "accuracy": 0.4983221476510067,
+        "balanced_accuracy": 0.48606893281703334,
+        "f1_macro": 0.459533486571033,
+        "roc_auc": 0.4328578005070175
+      },
+      "test_trial": {
+        "accuracy": 0.475,
+        "balanced_accuracy": 0.4590643274853801,
+        "f1_macro": 0.40561364887176665,
+        "roc_auc": 0.42077415761626286
+      },
+      "validation_segment": {
+        "accuracy": 0.4253164556962025,
+        "balanced_accuracy": 0.5,
+        "f1_macro": 0.2984014209591474,
+        "roc_auc": 0.4878009696291634
+      }
+    },
+    "XGBoost": {
+      "source": "Review 2 config refit on train+validation (xgboost)",
+      "test_segment": {
+        "accuracy": 0.5,
+        "balanced_accuracy": 0.49901218121676694,
+        "f1_macro": 0.4989970362420954,
+        "roc_auc": 0.47753355134337083
+      },
+      "test_trial": {
+        "accuracy": 0.5166666666666667,
+        "balanced_accuracy": 0.5146198830409356,
+        "f1_macro": 0.5145089285714286,
+        "roc_auc": 0.4714564188248399
+      },
+      "validation_segment": {
+        "accuracy": 0.4573839662447257,
+        "balanced_accuracy": 0.5201646737990351,
+        "f1_macro": 0.38521723203933556,
+        "roc_auc": 0.6221855115026921
+      }
+    },
+    "CNN (EEGNet-style)": {
+      "source": "cnn_valence_binary_20261006-045706",
+      "test_segment": {
+        "accuracy": 0.5419463087248322,
+        "balanced_accuracy": 0.5337551789927636,
+        "f1_macro": 0.5248666216962041,
+        "roc_auc": 0.5766340404234261
+      },
+      "test_trial": {
+        "accuracy": 0.5416666666666666,
+        "balanced_accuracy": 0.5334168755221387,
+        "f1_macro": 0.5241871530531325,
+        "roc_auc": 0.5903648008911166
+      },
+      "validation_segment": {
+        "accuracy": 0.5594936708860759,
+        "balanced_accuracy": 0.5623339276973638,
+        "f1_macro": 0.5576258531813006,
+        "roc_auc": 0.5822261846490921
+      }
+    },
+    "Majority-class reference": {
+      "source": "most frequent training class",
+      "test_segment": {
+        "accuracy": 0.5251677852348994,
+        "balanced_accuracy": 0.5,
+        "f1_macro": 0.34433443344334436,
+        "roc_auc": 0.5
+      },
+      "test_trial": {
+        "accuracy": 0.525,
+        "balanced_accuracy": 0.5,
+        "f1_macro": 0.3442622950819672,
+        "roc_auc": 0.5
+      },
+      "validation_segment": {
+        "accuracy": 0.4253164556962025,
+        "balanced_accuracy": 0.5,
+        "f1_macro": 0.2984014209591474,
+        "roc_auc": 0.5
+      }
+    }
+  }
+}

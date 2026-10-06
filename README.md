@@ -37,7 +37,7 @@ backend/
     api/                    dependencies (current user, admin) and route modules
     middleware/             request logging with request IDs
     ml/                     dataset loader, labels, splitting, feature table, models, training, evaluation, registry
-      deep/                 CNN/LSTM prototypes (not used yet, see Future work)
+      deep/                 Review 3: segment Dataset/DataLoader, EEGNet-style CNN, CNN trainer (PyTorch)
     preprocessing/          EEGPreprocessor and FeatureExtractor
   alembic/                  migrations
   scripts/                  dataset_summary, preprocessing_report, train_baseline
@@ -277,7 +277,7 @@ npm run dev                                  # http://localhost:5173 (proxies /a
 
 ```powershell
 cd backend
-..\.venv\Scripts\python -m pytest            # 73 unit/API tests (synthetic DEAP-format fixtures, ~30 s)
+..\.venv\Scripts\python -m pytest            # 91 unit/API tests incl. 18 deep-learning tests (skipped without torch)
 ..\.venv\Scripts\python -m pytest -m integration   # 2 tests on the real DEAP files
 ```
 
@@ -293,6 +293,15 @@ cd backend
 ```
 
 You can also train through the API (`POST /api/train` as admin) or with the dashboard's **Train on DEAP** button.
+
+**Review 3 CNN** (needs `pip install -r backend/requirements-dl.txt`):
+
+```powershell
+..\.venv\Scripts\python -m scripts.train_cnn        # EEGNet-style CNN, same participant split; registered, not activated
+..\.venv\Scripts\python -m scripts.compare_models   # Random Forest / SVM / XGBoost / CNN on the same test participants
+```
+
+The Random Forest remains the active model. For CNN details and results, see [docs/REVIEW3_PROGRESS_30.md](docs/REVIEW3_PROGRESS_30.md).
 
 To predict, use the dashboard's Prediction card (a held-out participant and trial, or an uploaded EEG JSON) or `POST /api/predict`.
 
@@ -310,9 +319,8 @@ To predict, use the dashboard's Prediction card (a held-out participant and tria
 ## 16. Future work (Review 3)
 
 - **Deep models:**
-  - CNN on raw or z-scored segments, and LSTM on segment sequences;
-  - a Transformer over channel × time tokens;
-  - `app/ml/deep/` currently holds placeholder MLP/LSTM modules (`torch` is in `requirements-dl.txt`).
+  - done (Review 3, first phase): EEGNet-style CNN on z-scored segments; see `docs/REVIEW3_PROGRESS_30.md`;
+  - next: CNN-LSTM and LSTM on segment sequences, then a Transformer over channel × time tokens.
 - **Better evaluation:**
   - per-participant feature normalization and domain adaptation;
   - full 32-participant DEAP;

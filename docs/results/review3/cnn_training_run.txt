@@ -1,0 +1,36 @@
+﻿[  2%] Loading preprocessed DEAP segments
+[  5%] Selection run: training on train participants, early stopping on validation
+[  6%] Selection epoch 1
+[  7%] Selection epoch 2
+[  8%] Selection epoch 3
+[  8%] Selection epoch 4
+[  9%] Selection epoch 5
+[ 10%] Selection epoch 6
+[ 11%] Selection epoch 7
+[ 12%] Selection epoch 8
+[ 12%] Selection epoch 9
+[ 13%] Selection epoch 10
+[ 14%] Selection epoch 11
+[ 15%] Selection epoch 12
+[ 60%] Final fit: train + validation participants for 2 epochs
+[ 72%] Final-fit epoch 1
+[ 85%] Final-fit epoch 2
+[ 88%] Evaluating on held-out test participants
+[ 94%] Saving model, history, metrics and figures
+[100%] Done
+
+Model version : cnn_valence_binary_20261006-045706  (registered, not active)
+Architecture  : 2130 parameters, input [1, 32, 512]
+Split         : train ['s02', 's03', 's05', 's07', 's08', 's15', 's22'] | val ['s16', 's25'] | test ['s01', 's09', 's11']
+Epochs        : ran 12, selected epoch 2 (validation f1_macro 0.558); final fit = train+validation
+Training time : 449.2 s
+
+VALIDATION participants (selected epoch, train-only model):
+  segment acc 0.559 | bal-acc 0.562 | macro-F1 0.558 | prec 0.561 | rec 0.562 | AUC 0.582 | n=1185
+  trial   acc 0.562 | bal-acc 0.566 | macro-F1 0.561 | prec 0.564 | rec 0.566 | AUC 0.583 | n=80
+
+TEST participants (final model, evaluated once):
+  segment acc 0.542 | bal-acc 0.534 | macro-F1 0.525 | prec 0.538 | rec 0.534 | AUC 0.577 | n=1788
+  trial   acc 0.542 | bal-acc 0.533 | macro-F1 0.524 | prec 0.538 | rec 0.533 | AUC 0.590 | n=120
+  majority reference acc 0.525 | bal-acc 0.500 | macro-F1 0.344 | prec 0.263 | rec 0.500 | AUC 0.500 | n=1788
+  confusion (rows=true ['high_valence', 'low_valence']): [[654, 285], [534, 315]]

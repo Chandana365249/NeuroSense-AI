@@ -1,0 +1,467 @@
+{
+  "name": "NeuroSense EEG CNN (valence_binary)",
+  "algorithm": "cnn",
+  "model_type": "cnn",
+  "framework": "pytorch",
+  "framework_version": "2.14.1+cpu",
+  "algorithm_description": "EEGNet-style CNN: temporal conv, depthwise spatial conv, separable conv, linear head",
+  "trained_at": "2026-10-06T04:57:06.779338+00:00",
+  "training_seconds": 449.2,
+  "label": {
+    "strategy": "valence_binary",
+    "description": "Binary valence: high_valence if self-reported valence > 5.0 (1-9 scale), else low_valence",
+    "valence_threshold": 5.0,
+    "arousal_threshold": 5.0
+  },
+  "class_labels": [
+    "high_valence",
+    "low_valence"
+  ],
+  "input": {
+    "type": "segments",
+    "shape": [
+      1,
+      32,
+      512
+    ],
+    "channels": [
+      "Fp1",
+      "AF3",
+      "F3",
+      "F7",
+      "FC5",
+      "FC1",
+      "C3",
+      "T7",
+      "CP5",
+      "CP1",
+      "P3",
+      "P7",
+      "PO3",
+      "O1",
+      "Oz",
+      "Pz",
+      "Fp2",
+      "AF4",
+      "Fz",
+      "F4",
+      "F8",
+      "FC6",
+      "FC2",
+      "Cz",
+      "C4",
+      "T8",
+      "CP6",
+      "CP2",
+      "P4",
+      "P8",
+      "PO4",
+      "O2"
+    ],
+    "sampling_rate": 128,
+    "segment_seconds": 4.0,
+    "normalization": {
+      "method": "per-channel z-score (training participants)",
+      "mean": [
+        -0.07368601113557816,
+        0.16946309804916382,
+        0.10039610415697098,
+        0.024238809943199158,
+        0.0723433718085289,
+        0.04341349005699158,
+        0.054774828255176544,
+        0.06390760838985443,
+        -0.03807283192873001,
+        -0.026642827317118645,
+        0.007212109863758087,
+        0.02096189372241497,
+        0.09576690942049026,
+        -0.06497211009263992,
+        0.06692895293235779,
+        -0.00835484266281128,
+        -0.12995947897434235,
+        -0.09250632673501968,
+        0.06280955672264099,
+        -0.10553039610385895,
+        -0.029401643201708794,
+        0.02221694216132164,
+        0.062232762575149536,
+        -0.019591372460126877,
+        0.03579433262348175,
+        -0.0779312402009964,
+        -0.03847859427332878,
+        -0.061571333557367325,
+        0.05576902627944946,
+        -0.015636952593922615,
+        -0.13814915716648102,
+        -0.04975828155875206
+      ],
+      "std": [
+        21.774337768554688,
+        48.801605224609375,
+        48.7334098815918,
+        20.02359390258789,
+        34.156288146972656,
+        23.50961685180664,
+        21.775724411010742,
+        21.790380477905273,
+        30.18011474609375,
+        18.85533332824707,
+        20.468088150024414,
+        22.761741638183594,
+        34.87451934814453,
+        52.790863037109375,
+        34.401893615722656,
+        18.96607780456543,
+        45.014198303222656,
+        31.329458236694336,
+        39.853843688964844,
+        34.52289581298828,
+        32.23602294921875,
+        17.789600372314453,
+        31.386533737182617,
+        27.105998992919922,
+        14.206782341003418,
+        39.534454345703125,
+        24.6632022857666,
+        24.484254837036133,
+        31.92840003967285,
+        14.525128364562988,
+        37.68165969848633,
+        26.262306213378906
+      ]
+    }
+  },
+  "feature_schema": {
+    "version": "seg-v1",
+    "count": 16384,
+    "names": []
+  },
+  "architecture": {
+    "config": {
+      "n_channels": 32,
+      "n_samples": 512,
+      "n_classes": 2,
+      "temporal_filters": 8,
+      "depth_multiplier": 2,
+      "separable_filters": 16,
+      "temporal_kernel": 64,
+      "separable_kernel": 16,
+      "pool1": 4,
+      "pool2": 8,
+      "dropout": 0.5
+    },
+    "parameters": 2130,
+    "layers": [
+      {
+        "stage": "input",
+        "output_shape": [
+          1,
+          1,
+          32,
+          512
+        ],
+        "parameters": 0
+      },
+      {
+        "stage": "temporal",
+        "output_shape": [
+          1,
+          8,
+          32,
+          512
+        ],
+        "parameters": 528
+      },
+      {
+        "stage": "spatial",
+        "output_shape": [
+          1,
+          16,
+          1,
+          128
+        ],
+        "parameters": 544
+      },
+      {
+        "stage": "separable",
+        "output_shape": [
+          1,
+          16,
+          1,
+          16
+        ],
+        "parameters": 544
+      },
+      {
+        "stage": "classifier",
+        "output_shape": [
+          1,
+          2
+        ],
+        "parameters": 514
+      }
+    ],
+    "reference": "Lawhern et al. 2018, EEGNet (J. Neural Eng. 15:056013)"
+  },
+  "preprocessing": {
+    "sampling_rate": 128,
+    "n_channels": 32,
+    "baseline_seconds": 3.0,
+    "low_hz": 4.0,
+    "high_hz": 45.0,
+    "filter_order": 4,
+    "artifact_clip_sigma": 6.0,
+    "max_clipped_fraction": 0.05,
+    "segment_seconds": 4.0
+  },
+  "split": {
+    "train": [
+      "s02",
+      "s03",
+      "s05",
+      "s07",
+      "s08",
+      "s15",
+      "s22"
+    ],
+    "validation": [
+      "s16",
+      "s25"
+    ],
+    "test": [
+      "s01",
+      "s09",
+      "s11"
+    ],
+    "seed": 42,
+    "segments": {
+      "train": 4073,
+      "validation": 1185,
+      "test": 1788
+    },
+    "strategy": "participant-aware (whole participants per split)"
+  },
+  "dataset": {
+    "dir": "C:\\Users\\gandl\\Documents\\NeuroSense_AI\\Dataset\\DEAP\\archive",
+    "fingerprint": "3c5359083bc90ae5",
+    "participants": [
+      "s01",
+      "s02",
+      "s03",
+      "s05",
+      "s07",
+      "s08",
+      "s09",
+      "s11",
+      "s15",
+      "s16",
+      "s22",
+      "s25"
+    ],
+    "segments": 7046,
+    "rejected_segments": 154,
+    "class_balance": {
+      "high_valence": 3714,
+      "low_valence": 3332
+    }
+  },
+  "training_config": {
+    "max_epochs": 60,
+    "patience": 10,
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "weight_decay": 0.01,
+    "class_weighting": true,
+    "selection_metric": "f1_macro",
+    "final_fit": "train+validation",
+    "seed": 42,
+    "num_threads": 4,
+    "optimizer": "AdamW",
+    "loss": "cross-entropy (balanced class weights)",
+    "best_epoch": 2,
+    "epochs_run": 12,
+    "best_validation": {
+      "epoch": 2,
+      "score": 0.5576258531813006,
+      "val_loss": 0.7717168902546042,
+      "metric": "f1_macro"
+    }
+  },
+  "validation": {
+    "cnn": {
+      "segment": {
+        "n_samples": 1185,
+        "accuracy": 0.5594936708860759,
+        "balanced_accuracy": 0.5623339276973638,
+        "precision_macro": 0.5609661921099725,
+        "recall_macro": 0.5623339276973638,
+        "f1_macro": 0.5576258531813006,
+        "precision_weighted": 0.5722982032677854,
+        "recall_weighted": 0.5594936708860759,
+        "f1_weighted": 0.5619194081650049,
+        "confusion_matrix": [
+          [
+            293,
+            211
+          ],
+          [
+            311,
+            370
+          ]
+        ],
+        "class_order": [
+          "high_valence",
+          "low_valence"
+        ],
+        "support": {
+          "high_valence": 504,
+          "low_valence": 681
+        },
+        "roc_auc": 0.5822261846490921
+      },
+      "trial": {
+        "n_samples": 80,
+        "accuracy": 0.5625,
+        "balanced_accuracy": 0.5658567774936061,
+        "precision_macro": 0.5644152595372107,
+        "recall_macro": 0.5658567774936061,
+        "f1_macro": 0.5607843137254902,
+        "precision_weighted": 0.5759068167604753,
+        "recall_weighted": 0.5625,
+        "f1_weighted": 0.5649019607843137,
+        "confusion_matrix": [
+          [
+            20,
+            14
+          ],
+          [
+            21,
+            25
+          ]
+        ],
+        "class_order": [
+          "high_valence",
+          "low_valence"
+        ],
+        "support": {
+          "high_valence": 34,
+          "low_valence": 46
+        },
+        "roc_auc": 0.5831202046035805
+      }
+    }
+  },
+  "test": {
+    "segment": {
+      "n_samples": 1788,
+      "accuracy": 0.5419463087248322,
+      "balanced_accuracy": 0.5337551789927636,
+      "precision_macro": 0.5377525252525253,
+      "recall_macro": 0.5337551789927636,
+      "f1_macro": 0.5248666216962041,
+      "precision_weighted": 0.5383944308860417,
+      "recall_weighted": 0.5419463087248322,
+      "f1_weighted": 0.5294010518807956,
+      "confusion_matrix": [
+        [
+          654,
+          285
+        ],
+        [
+          534,
+          315
+        ]
+      ],
+      "class_order": [
+        "high_valence",
+        "low_valence"
+      ],
+      "support": {
+        "high_valence": 939,
+        "low_valence": 849
+      },
+      "roc_auc": 0.5766340404234261
+    },
+    "trial": {
+      "n_samples": 120,
+      "accuracy": 0.5416666666666666,
+      "balanced_accuracy": 0.5334168755221387,
+      "precision_macro": 0.5375000000000001,
+      "recall_macro": 0.5334168755221387,
+      "f1_macro": 0.5241871530531325,
+      "precision_weighted": 0.5381250000000001,
+      "recall_weighted": 0.5416666666666666,
+      "f1_weighted": 0.5287470261697067,
+      "confusion_matrix": [
+        [
+          44,
+          19
+        ],
+        [
+          36,
+          21
+        ]
+      ],
+      "class_order": [
+        "high_valence",
+        "low_valence"
+      ],
+      "support": {
+        "high_valence": 63,
+        "low_valence": 57
+      },
+      "roc_auc": 0.5903648008911166
+    }
+  },
+  "test_reference_majority": {
+    "segment": {
+      "n_samples": 1788,
+      "accuracy": 0.5251677852348994,
+      "balanced_accuracy": 0.5,
+      "precision_macro": 0.2625838926174497,
+      "recall_macro": 0.5,
+      "f1_macro": 0.34433443344334436,
+      "precision_weighted": 0.27580120264852936,
+      "recall_weighted": 0.5251677852348994,
+      "f1_weighted": 0.36166670358311,
+      "confusion_matrix": [
+        [
+          939,
+          0
+        ],
+        [
+          849,
+          0
+        ]
+      ],
+      "class_order": [
+        "high_valence",
+        "low_valence"
+      ],
+      "support": {
+        "high_valence": 939,
+        "low_valence": 849
+      },
+      "roc_auc": 0.5
+    },
+    "trial": null
+  },
+  "cross_validation": null,
+  "artifacts": {
+    "graphs": {
+      "loss_curve": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\graphs\\cnn_valence_binary_20261006-045706_loss.png",
+      "metric_curve": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\graphs\\cnn_valence_binary_20261006-045706_metrics.png",
+      "confusion_matrix_segment": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\graphs\\cnn_valence_binary_20261006-045706_cm_segment.png",
+      "confusion_matrix_trial": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\graphs\\cnn_valence_binary_20261006-045706_cm_trial.png",
+      "roc_curve": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\graphs\\cnn_valence_binary_20261006-045706_roc.png"
+    },
+    "test_predictions": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\predictions\\cnn_valence_binary_20261006-045706_test_predictions.csv",
+    "history": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\metrics\\cnn_valence_binary_20261006-045706_history.json",
+    "checkpoints": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\models\\cnn_valence_binary_20261006-045706\\checkpoints"
+  },
+  "disclaimer": "Research prototype. Predictions estimate a participant's self-reported affect category from EEG features; they are not a diagnosis of any medical or psychological condition.",
+  "version": "cnn_valence_binary_20261006-045706",
+  "model_path": "C:\\Users\\gandl\\OneDrive\\Documents\\NeuroSense_AI\\outputs\\models\\cnn_valence_binary_20261006-045706\\model.pt",
+  "sha256": "303993d71f24497249d5c7dc82e00e73f106c01183154adf770b4de38fc66c3b"
+}
