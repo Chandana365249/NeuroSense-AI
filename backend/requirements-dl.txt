@@ -1,3 +1,4 @@
-# Optional: only needed for the experimental CNN/LSTM modules in app/ml/deep (next phase).
+# Deep-learning extras (Review 3). Install after requirements.txt.
+# On Windows the PyPI wheel is the CPU build; the API and Review 2 pipeline run without torch.
 -r requirements.txt
-torch>=2.6
+torch==2.14.1
