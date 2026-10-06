@@ -10,6 +10,7 @@ from app.core.exceptions import ServiceUnavailableError
 from app.ml.dataset import DatasetError
 from app.repositories import AuditRepository, ModelRepository
 from app.schemas.schemas import DemoTrialsOut, MetricsOut, ModelInfoOut, ModelSummary, TrainingStatusOut, TrainRequest
+from app.services.model_service import input_requirements
 
 router = APIRouter(tags=["model"])
 
@@ -42,6 +43,11 @@ def model_info(model_service: ModelServiceDep) -> ModelInfoOut:
         name=meta["name"],
         algorithm=meta["algorithm"],
         algorithm_description=meta["algorithm_description"],
+        model_type=meta.get("model_type", meta["algorithm"]),
+        framework=meta.get("framework", "sklearn"),
+        framework_version=meta.get("framework_version"),
+        input_requirements=input_requirements(meta),
+        architecture={k: v for k, v in meta["architecture"].items() if k != "layers"} if meta.get("architecture") else None,
         trained_at=meta["trained_at"],
         label=meta["label"],
         class_labels=meta["class_labels"],
@@ -55,13 +61,20 @@ def model_info(model_service: ModelServiceDep) -> ModelInfoOut:
 
 @router.get("/models", response_model=list[ModelSummary], summary="All registered model versions")
 def list_models(db: DbSession, model_service: ModelServiceDep) -> list[ModelSummary]:
-    if model_service.available:
-        model_service.sync_to_db(db)
-    return [
-        ModelSummary(version=m.version, name=m.name, algorithm=m.algorithm, label_strategy=m.label_strategy,
-                     class_labels=m.class_labels, feature_count=m.feature_count, trained_at=m.trained_at, is_active=m.is_active)
-        for m in ModelRepository(db).list()
-    ]
+    model_service.sync_registry_to_db(db)
+    registry_meta = {m["version"]: m for m in model_service.registry.list_versions()}
+    summaries = []
+    for m in ModelRepository(db).list():
+        meta = registry_meta.get(m.version, {})
+        test_segment = (meta.get("test") or {}).get("segment") or {}
+        summaries.append(ModelSummary(
+            version=m.version, name=m.name, algorithm=m.algorithm, label_strategy=m.label_strategy,
+            class_labels=m.class_labels, feature_count=m.feature_count, trained_at=m.trained_at, is_active=m.is_active,
+            model_type=meta.get("model_type", m.algorithm) if meta else None,
+            framework=meta.get("framework", "sklearn") if meta else None,
+            test_metrics={k: test_segment.get(k) for k in ("accuracy", "balanced_accuracy", "f1_macro", "roc_auc")} if test_segment else None,
+        ))
+    return summaries
 
 
 @router.get("/metrics", response_model=MetricsOut, summary="Evaluation metrics of the active model (real held-out results)")

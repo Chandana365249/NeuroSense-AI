@@ -37,10 +37,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if app.state.model_service.available:
             try:
                 with app.state.db.session() as session:
-                    app.state.model_service.sync_to_db(session)
+                    app.state.model_service.sync_registry_to_db(session)
                     session.commit()
             except Exception as exc:
-                logger.error("Could not sync active model to database", extra={"error": str(exc)})
+                logger.error("Could not sync registered models to database", extra={"error": str(exc)})
         yield
         app.state.training_service.wait(timeout=1)
         app.state.db.dispose()

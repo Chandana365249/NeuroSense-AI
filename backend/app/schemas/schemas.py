@@ -58,6 +58,9 @@ class ModelSummary(BaseModel):
     feature_count: int
     trained_at: datetime
     is_active: bool
+    model_type: str | None = None
+    framework: str | None = None
+    test_metrics: dict[str, float | None] | None = None
 
 
 class ModelInfoOut(BaseModel):
@@ -67,6 +70,11 @@ class ModelInfoOut(BaseModel):
     name: str | None = None
     algorithm: str | None = None
     algorithm_description: str | None = None
+    model_type: str | None = None
+    framework: str | None = None
+    framework_version: str | None = None
+    input_requirements: dict[str, Any] | None = None
+    architecture: dict[str, Any] | None = None
     trained_at: datetime | None = None
     label: dict[str, Any] | None = None
     class_labels: list[str] | None = None
