@@ -1,9 +1,12 @@
 const BASE = '/api';
 
 export class ApiError extends Error {
-  constructor(status, message) {
+  constructor(status, message, { code = null, details = null } = {}) {
     super(message);
     this.status = status;
+    this.code = code;
+    // Structured field errors ([{loc, msg, type}]) are only kept for request-validation failures.
+    this.details = code === 'validation_error' && Array.isArray(details) ? details : null;
   }
 }
 
@@ -25,7 +28,8 @@ async function request(path, { token, method = 'GET', json, form } = {}) {
   }
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new ApiError(response.status, data?.error?.message || `Request failed (${response.status})`);
+    throw new ApiError(response.status, data?.error?.message || `Request failed (${response.status})`,
+      { code: data?.error?.code, details: data?.error?.details });
   }
   return data;
 }
@@ -38,10 +42,20 @@ export const api = {
   me: (token) => request('/auth/me', { token }),
   modelInfo: () => request('/model-info'),
   metrics: () => request('/metrics'),
-  trainingStatus: () => request('/training/status'),
+  trainingStatus: (token) => request('/training/status', { token }),
   train: (token, runCrossValidation) =>
     request('/train', { token, method: 'POST', json: { run_cross_validation: runCrossValidation } }),
   demoTrials: () => request('/dataset/demo-trials'),
+  datasetSummary: () => request('/dataset/summary'),
+  models: () => request('/models'),
+  // The confirmation and the audit reason travel only in the request body (never in the URL).
+  activateModel: (token, version, { confirmVersion, reason }) =>
+    request(`/models/${encodeURIComponent(version)}/activate`, {
+      token, method: 'POST', json: { confirm_version: confirmVersion, reason },
+    }),
+  adminDiagnostics: (token) => request('/admin/diagnostics', { token }),
   predict: (token, payload) => request('/predict', { token, method: 'POST', json: payload }),
-  predictions: (token) => request('/predictions?limit=20', { token }),
+  predictions: (token, { limit = 20, offset = 0 } = {}) =>
+    request(`/predictions?limit=${limit}&offset=${offset}`, { token }),
+  prediction: (token, id) => request(`/predictions/${encodeURIComponent(id)}`, { token }),
 };
