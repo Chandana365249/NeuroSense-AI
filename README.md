@@ -20,7 +20,7 @@ DEAP .dat files ─► DEAPDataset (safe loader, validation)
                                         └► ModelRegistry (outputs/models/<version>, SHA-256)
 
 FastAPI  ─ routes (thin) ─► services ─► repositories ─► SQLAlchemy ─► PostgreSQL 18 (automated tests use temporary SQLite)
-          └─ ModelService keeps the active model in memory (loaded once, reloaded after training)
+          └─ ModelService keeps the active model in memory (loaded at startup; replaced only by an explicit administrator activation)
 React (Vite) ─► /api/* (proxied to :8000)
 ```
 
@@ -129,7 +129,7 @@ The feature table is cached in `outputs/cache/` using a fingerprint of the files
 5. **Leave-one-participant-out CV** over the 9 non-test participants, to show how much results vary from person to person.
 6. **Saved artifacts:**
    - `outputs/models/<version>/model.joblib` and `metadata.json`, containing the feature schema, class labels, preprocessing and label configuration, split, all metrics and SHA-256;
-   - `active_model.json`;
+   - `active_model.json`, the pointer to the active version. Training does **not** change it: a new version is saved as an inactive candidate (see *Model lifecycle* below);
    - `outputs/metrics/<version>.json`;
    - `outputs/predictions/<version>_test_predictions.csv`;
    - figures in `outputs/graphs/`.
@@ -140,7 +140,7 @@ Training is reproducible: re-running gives identical metrics.
 
 Metrics (`app/ml/evaluation.py`): accuracy, balanced accuracy, macro/weighted precision, recall and F1, confusion matrix, and ROC-AUC. Binary ROC-AUC uses the positive-class probability; multiclass uses one-vs-rest macro averaging. ROC-AUC is reported as undefined when the true labels contain only one class. Results are reported **per 4 s segment** and **per trial** (segment probabilities averaged within the trial).
 
-**Real result, model `valence_binary-random_forest-20261005-182352`, test participants s01, s09, s11 (never seen in training or selection):**
+**Real result, model `valence_binary-random_forest-20261005-182352`, test participants s01, s09, s11 (never seen in training or selection).** The currently active retrain, `valence_binary-random_forest-20261008-180558`, reproduces these metrics exactly.
 
 | | accuracy | balanced acc. | macro-F1 | ROC-AUC | n |
 |---|---|---|---|---|---|
@@ -149,6 +149,12 @@ Metrics (`app/ml/evaluation.py`): accuracy, balanced accuracy, macro/weighted pr
 | Majority-class reference, segment | 0.525 | 0.500 | 0.344 | 0.500 | 1788 |
 
 Leave-one-participant-out CV (9 participants): accuracy **0.510 ± 0.086**, macro-F1 **0.416 ± 0.050**. Per-participant accuracy ranges from 0.41 to 0.70.
+
+**EEGNet-style CNN, robust evaluation** (5 seeds plus nested leave-one-participant-out; see [docs/REVIEW3_CNN_ROBUST_EVALUATION.md](docs/REVIEW3_CNN_ROBUST_EVALUATION.md)):
+- **Test participants:** segment macro-F1 **0.466 ± 0.109** over 5 seeds (range 0.322–0.554), vs the Random Forest's 0.543.
+- **LOPO:** accuracy 0.503 ± 0.080, macro-F1 0.383 ± 0.065, balanced accuracy 0.494 ± 0.023.
+- **Normalization:** per-participant normalization did not improve discrimination.
+- **Status:** the CNN does not outperform the Random Forest and stays inactive.
 
 On validation participants, the SVM collapsed to the majority class (macro-F1 0.298) and XGBoost reached macro-F1 0.385.
 
@@ -176,21 +182,25 @@ Interactive OpenAPI docs are at **http://localhost:8000/api/docs** (ReDoc at `/a
 
 | method | path | auth | purpose |
 |---|---|---|---|
-| GET | `/api/health` | – | backend, database, model and dataset status |
+| GET | `/api/health` | – | public liveness check: `status` (`ok`/`degraded`) and API `version` only |
+| GET | `/api/admin/diagnostics` | admin | database connection and engine, active-model status, dataset availability, environment (never URLs, credentials or secrets) |
 | POST | `/api/auth/register` | – | create account (**the first account becomes administrator**) |
 | POST | `/api/auth/login` | – | OAuth2 password form (`username` = email) → JWT |
 | GET | `/api/auth/me` | user | current user |
-| POST | `/api/train` | admin | start training in the background (202) |
-| GET | `/api/training/status` | – | state, stage, progress, resulting version |
+| POST | `/api/train` | admin | start training in the background (202). The result is registered as an **inactive candidate**; the active model does not change |
+| GET | `/api/training/status` | admin | state, stage, progress, resulting version; a failed run reports a generic message (details are in the server log only) |
 | GET | `/api/model-info` | – | active model metadata (`available: false` if none) |
-| GET | `/api/models` | – | registered model versions |
-| GET | `/api/metrics` | – | held-out, validation, CV and reference metrics, plus graph URLs |
-| GET | `/api/dataset/summary` | – | structure of the local DEAP files |
+| GET | `/api/models` | – | registered model versions (read-only; never writes to the database) |
+| POST | `/api/models/sync` | admin | synchronise saved model versions into the database registry (the same idempotent sync that runs at startup; does not change the active model) |
+| POST | `/api/models/{version}/activate` | admin | make a registered version the active model. Body: `{"confirm_version": "<same version>", "reason": "<10-500 characters>"}`. Validates integrity, feature schema and a test prediction first; 404 unknown version, 409 while training or another activation runs, 422 invalid request or model, 500 if the switch fails (the previous model stays active). Audited as `model.activate`. Activating the version that is already active writes nothing (`changed: false`) |
+| GET | `/api/metrics` | – | held-out, validation, CV and reference metrics, plus graph URLs; dataset facts limited to participant count, segment and rejected-segment counts, class balance and fingerprint (no dataset location or file names) |
+| GET | `/api/dataset/summary` | – | aggregate structure of the working dataset (counts, channels, sampling rate, per-participant shape); no paths, file names or rating statistics |
+| GET | `/api/admin/dataset/summary` | admin | full dataset diagnostics, including location, file names, sizes and rating statistics |
 | GET | `/api/dataset/demo-trials` | – | held-out participants for honest demo predictions |
 | POST | `/api/predict` | user | predict and store; body: `{"deap_reference": {"participant_id": "s01", "trial_index": 0}}` **or** `{"eeg": {"signal": [[...32 channels...]], "sampling_rate": 128, "includes_baseline": false}}`, optional `session_id` |
 | GET | `/api/predictions[/{id}]` | user | own prediction history |
 | POST/GET | `/api/sessions` | user | create or list analysis sessions |
-| GET | `/api/reports` | user | training reports |
+| GET | `/api/reports` | admin | training reports (administrator only); responses are sanitised (dataset facts limited to participant count, segment and rejected-segment counts, class balance and fingerprint; no filesystem paths or file names). Stored reports are unchanged. |
 | GET | `/api/graphs/<file>` | – | evaluation figures |
 
 **Prediction pipeline:**
@@ -210,6 +220,22 @@ For DEAP references, the response also includes the participant's self-reported 
 - Access tokens are JWT (HS256) signed with `NEUROSENSE_JWT_SECRET_KEY` from the environment. The app refuses to start without it. Default lifetime is 60 min.
 - `get_current_user` protects user routes and `get_admin_user` protects training.
 - Unknown-email logins are checked against a dummy hash, which reduces user enumeration through response timing.
+
+### Deployment and security consideration: first account becomes administrator
+
+`POST /api/auth/register` makes the **first account registered in an empty database an administrator** (`backend/app/services/auth_service.py`, `is_admin=is_first`). Every later account is a standard user. This is intentional bootstrap behaviour and has not been changed. On a fresh deployment, though, whoever registers first gets administrator rights. These include `POST /api/train` (trains a new candidate model), `POST /api/models/{version}/activate` (changes the model that serves predictions), `POST /api/models/sync`, the training reports (`GET /api/reports`), and the detailed system and dataset diagnostics (`/api/admin/diagnostics`, `/api/admin/dataset/summary`).
+
+Required precaution for every fresh deployment or new, empty database:
+
+1. Before the application is reachable by anyone else (public network, shared host, tunnel or reverse proxy), register the intended administrator account yourself.
+2. Verify it: sign in, call `GET /api/auth/me` and confirm `"is_admin": true` for that email address. Also confirm there are no other accounts in the `users` table.
+3. Only then expose the application to users.
+
+If the order goes wrong, an unintended account can hold administrator rights. Review the `users` table and correct `is_admin` before continuing.
+
+**Audit log and training failures.** A failed training run is recorded in the `audit_logs` table as `training.failed`. The record holds a safe description, the stage, the progress and the exception type, and the full exception goes to the server log only. Entries written before this change may still contain raw exception text, which can include server paths. They stay server-side: no API endpoint returns audit-log entries. They have not been rewritten or deleted.
+
+Hiding administration links in the frontend does **not** restrict access. The server-side check (`get_admin_user`) is what protects administrator routes. Any account the backend marks as administrator can call those routes directly, whatever the interface shows.
 
 ## 11. Configuration
 
@@ -271,13 +297,13 @@ npm run dev                                  # http://localhost:5173 (proxies /a
 
 3. Run `alembic upgrade head`.
 
-4. Check `GET /api/health`. It should report `"database": {"connected": true, "dialect": "postgresql"}`.
+4. Check `GET /api/health`. It should report `"status": "ok"`. Then, signed in as the administrator, check `GET /api/admin/diagnostics`. It should report `"database": {"connected": true, "dialect": "postgresql"}`.
 
 ## 13. Tests
 
 ```powershell
 cd backend
-..\.venv\Scripts\python -m pytest            # 91 unit/API tests incl. 18 deep-learning tests (skipped without torch)
+..\.venv\Scripts\python -m pytest            # 104 unit/API/ML tests incl. 18 deep-learning + 13 robust-evaluation tests (torch parts skipped without torch)
 ..\.venv\Scripts\python -m pytest -m integration   # 2 tests on the real DEAP files
 ```
 
@@ -289,16 +315,24 @@ The unit tests generate small synthetic files in DEAP format inside a temporary 
 cd backend
 ..\.venv\Scripts\python -m scripts.dataset_summary        # verify the dataset
 ..\.venv\Scripts\python -m scripts.preprocessing_report   # preprocessing figures
-..\.venv\Scripts\python -m scripts.train_baseline         # train + evaluate (~75 s incl. CV; add --no-cv)
+..\.venv\Scripts\python -m scripts.train_baseline         # train + evaluate (~75 s incl. CV; add --no-cv); saved as an inactive candidate
 ```
 
-You can also train through the API (`POST /api/train` as admin) or with the dashboard's **Train on DEAP** button.
+You can also train through the API (`POST /api/train` as admin).
+
+**Model lifecycle.** Training never replaces the active model. Every new version (script or API) is saved and registered as an **inactive candidate**; the active model, its pointer (`outputs/models/active_model.json`) and the predictions it serves stay as they were. A candidate becomes active only through an explicit step:
+
+- `POST /api/models/{version}/activate` as an administrator, with the version repeated in `confirm_version` and a `reason` (10-500 characters, stored in the audit log; never include passwords, tokens or other secrets; text that looks like a credential is refused). The server checks the artifact's SHA-256, the feature schema and the class labels, and runs one neutral test prediction before switching. The pointer is written atomically (temporary file + `os.replace`); the pointer, the in-memory model, the database `is_active` flag and the audit entry change together, and any failure restores the previous state. To roll back, activate the previous version the same way.
+- Or `python -m scripts.train_baseline --activate` to activate the newly trained model directly. A running API server keeps serving the model it loaded until it is restarted.
+
+The candidate's metrics come from the same participant-aware split as before (not the frozen evaluation protocol), so activating a candidate is not evidence of better performance. There is no activation control in the web interface yet.
 
 **Review 3 CNN** (needs `pip install -r backend/requirements-dl.txt`):
 
 ```powershell
 ..\.venv\Scripts\python -m scripts.train_cnn        # EEGNet-style CNN, same participant split; registered, not activated
 ..\.venv\Scripts\python -m scripts.compare_models   # Random Forest / SVM / XGBoost / CNN on the same test participants
+..\.venv\Scripts\python -m scripts.evaluate_cnn     # robust CNN evaluation: 5 seeds + nested LOPO, 2 normalizations (resumable, ~3-4 h CPU)
 ```
 
 The Random Forest remains the active model. For CNN details and results, see [docs/REVIEW3_PROGRESS_30.md](docs/REVIEW3_PROGRESS_30.md).
@@ -309,12 +343,12 @@ To predict, use the dashboard's Prediction card (a held-out participant and tria
 
 - Cross-subject accuracy is near chance (see section 7). The current model is a pipeline baseline, not a usable emotion recognizer.
 - Only 12 participants, and a 3-participant test set, so the estimates have high variance.
-- No per-participant calibration or feature normalization yet.
+- No per-participant calibration in the served models. Per-participant normalization was evaluated for the CNN and did not improve cross-subject discrimination.
 - Uploaded EEG must already be in DEAP layout: 32 channels in Geneva order, 128 Hz, microvolts. There is no resampling or montage mapping.
 - Training state is held in memory, with one job at a time. A restart loses in-progress status (completed models persist).
 - `pickle`/`joblib` artifacts are trusted only because the registry writes them and verifies their SHA-256.
 - The JWT is stored in `sessionStorage` in the browser. That is acceptable for a prototype, but not hardened against XSS.
-- The application runs on PostgreSQL, but the automated tests use isolated temporary SQLite databases. PostgreSQL is checked through migrations and the live `/api/health` check, not by the test suite.
+- The application runs on PostgreSQL, but the automated tests use isolated temporary SQLite databases. PostgreSQL is checked through migrations and the live health and administrator diagnostics endpoints, not by the test suite.
 
 ## 16. Future work (Review 3)
 
@@ -322,9 +356,9 @@ To predict, use the dashboard's Prediction card (a held-out participant and tria
   - done (Review 3, first phase): EEGNet-style CNN on z-scored segments; see `docs/REVIEW3_PROGRESS_30.md`;
   - next: CNN-LSTM and LSTM on segment sequences, then a Transformer over channel × time tokens.
 - **Better evaluation:**
-  - per-participant feature normalization and domain adaptation;
+  - done: repeated seeds, nested LOPO, trial-cluster bootstrap CIs, within-participant permutation tests and Wilcoxon tests for the CNN (`scripts/evaluate_cnn.py`);
+  - domain adaptation;
   - full 32-participant DEAP;
-  - permutation tests against chance;
   - within-subject results reported separately.
 - **Explainable AI:** permutation importance and SHAP on band-power features, plus topographic maps of feature contributions.
 - **Product:**

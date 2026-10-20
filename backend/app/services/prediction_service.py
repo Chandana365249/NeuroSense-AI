@@ -52,9 +52,12 @@ class PredictionService:
 
     def predict(self, user: User, request: PredictionRequest, ip: str | None) -> PredictionOut:
         try:
-            _, meta, _, _ = self.model_service.require()
+            # One consistent snapshot for the whole request: an activation during this request cannot mix the
+            # output of one model with another model's version, labels or split.
+            snap = self.model_service.snapshot()
         except ModelNotAvailableError as exc:
             raise ServiceUnavailableError(str(exc)) from exc
+        meta = snap.meta
 
         if request.session_id is not None and not self.sessions.get_for_user(request.session_id, user.id):
             raise NotFoundError(f"Session {request.session_id} not found")
@@ -78,7 +81,7 @@ class PredictionService:
                 raise NotFoundError(str(exc)) from exc
             includes_baseline = True
             source = "deap_reference"
-            label_cfg = self.model_service.label_config()
+            label_cfg = snap.label_config()
             split = meta["split"]
             membership = next((p for p in ("train", "validation", "test") if ref.participant_id in split[p]), "not_used")
             source_reference = {
@@ -90,11 +93,11 @@ class PredictionService:
             }
 
         try:
-            result = self.model_service.predict_signal(signal, includes_baseline)
+            result = snap.predict_signal(signal, includes_baseline)
         except SignalValidationError as exc:
             raise InvalidInputError(str(exc)) from exc
 
-        model_row = self.models.get_by_version(meta["version"]) or self.model_service.sync_to_db(self.db)
+        model_row = self.models.get_by_version(snap.version) or self.model_service.ensure_registered(self.db, snap)
         item = self.predictions.create(
             user_id=user.id,
             session_id=request.session_id,

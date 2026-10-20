@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -51,7 +53,14 @@ class ModelRegistry:
     def version_dir(self, version: str) -> Path:
         return self.base_dir / version
 
-    def save(self, version: str, model: Any, metadata: dict[str, Any], activate: bool = True) -> Path:
+    def has_version(self, version: str) -> bool:
+        """True if `version` names a saved model directly under the registry (no path components)."""
+        if not version or version in (".", "..") or Path(version).name != version or "\\" in version or "/" in version:
+            return False
+        return (self.version_dir(version) / self.METADATA_FILE).is_file()
+
+    def save(self, version: str, model: Any, metadata: dict[str, Any], activate: bool = False) -> Path:
+        """Store a model version. It becomes active only when `activate` is True (new versions are candidates)."""
         framework = self.framework_of(metadata)
         directory = self.version_dir(version)
         directory.mkdir(parents=True, exist_ok=True)
@@ -70,9 +79,36 @@ class ModelRegistry:
         return directory
 
     def activate(self, version: str) -> None:
-        if not (self.version_dir(version) / self.METADATA_FILE).exists():
+        if not self.has_version(version):
             raise ModelNotAvailableError(f"Model version {version} not found")
-        (self.base_dir / self.ACTIVE_FILE).write_text(json.dumps({"version": version}), encoding="utf-8")
+        self._write_pointer(json.dumps({"version": version}).encode("utf-8"))
+
+    def pointer_bytes(self) -> bytes | None:
+        """The raw active-pointer file, or None if there is none (used to restore it exactly)."""
+        path = self.base_dir / self.ACTIVE_FILE
+        return path.read_bytes() if path.exists() else None
+
+    def restore_pointer(self, content: bytes | None) -> None:
+        """Put back a pointer captured with pointer_bytes()."""
+        if content is None:
+            (self.base_dir / self.ACTIVE_FILE).unlink(missing_ok=True)
+        else:
+            self._write_pointer(content)
+
+    def _write_pointer(self, content: bytes) -> None:
+        # Write a temporary file in the same directory, then os.replace it over the pointer: readers see either the
+        # old or the new pointer, never a partly written one.
+        target = self.base_dir / self.ACTIVE_FILE
+        fd, tmp_name = tempfile.mkstemp(prefix=".active_model.", suffix=".tmp", dir=self.base_dir)
+        try:
+            with os.fdopen(fd, "wb") as fh:
+                fh.write(content)
+                fh.flush()
+                os.fsync(fh.fileno())
+            os.replace(tmp_name, target)
+        except BaseException:
+            Path(tmp_name).unlink(missing_ok=True)
+            raise
 
     def active_version(self) -> str | None:
         path = self.base_dir / self.ACTIVE_FILE

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any, Literal
 
@@ -40,12 +41,85 @@ class TokenOut(BaseModel):
 
 # ---------- health ----------
 class HealthOut(BaseModel):
+    """Public liveness check: no configuration, model or dataset details."""
+    status: Literal["ok", "degraded"]
+    version: str
+
+
+class DiagnosticsOut(BaseModel):
+    """Administrator-only system diagnostics. Never contains connection strings, credentials or secrets."""
     status: Literal["ok", "degraded"]
     version: str
     environment: str
     database: dict[str, Any]
     model: dict[str, Any]
     dataset_available: bool
+
+
+class ParticipantStructure(BaseModel):
+    participant_id: str
+    readable: bool
+    trials: int | None = None
+    channels: int | None = None
+    samples: int | None = None
+
+
+class DatasetSummaryOut(BaseModel):
+    """Public, aggregate structure of the working dataset: no paths, file names, sizes or rating statistics."""
+    sampling_rate_hz: int
+    baseline_seconds: float
+    participants_found: int
+    participants_valid: int
+    total_trials: int
+    eeg_channels_used: int
+    eeg_channel_names: list[str]
+    participants: list[ParticipantStructure]
+
+
+class ModelSyncOut(BaseModel):
+    synced: int
+    active_version: str | None
+
+
+# Text that looks like a credential is refused in an activation reason (the reason is stored in the audit log).
+_CREDENTIAL_PATTERNS = (
+    re.compile(r"\b(?:password|passwd|pwd|passphrase|secret|api[_-]?key|access[_-]?key|private[_-]?key|token|"
+               r"client[_-]?secret|credentials?)\b\s*[:=]", re.IGNORECASE),  # password=..., token: ...
+    re.compile(r"\bbearer\s+[A-Za-z0-9._~+/=-]{8,}", re.IGNORECASE),  # Authorization header value
+    re.compile(r"\beyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]*"),  # JSON Web Token
+    re.compile(r"[a-z][a-z0-9+.-]*://[^\s/:@]+:[^\s/@]+@", re.IGNORECASE),  # URL with user:password@
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+    re.compile(r"\b(?:sk|pk|ghp|gho|ghs|xox[abprs])[-_][A-Za-z0-9_-]{16,}"),  # common API key formats
+    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),  # cloud access key ID
+)
+
+
+def looks_like_credential(text: str) -> bool:
+    return any(p.search(text) for p in _CREDENTIAL_PATTERNS)
+
+
+class ModelActivateRequest(BaseModel):
+    confirm_version: str = Field(min_length=1, max_length=200,
+                                 description="Must repeat the version in the URL, as a deliberate confirmation")
+    reason: str = Field(description="Why this model is being activated (10-500 characters, stored in the audit log; "
+                                    "never include passwords, tokens or other secrets)")
+
+    @field_validator("reason")
+    @classmethod
+    def _reason(cls, value: str) -> str:
+        value = value.strip()
+        if not 10 <= len(value) <= 500:
+            raise ValueError("Reason must be 10-500 characters after trimming spaces")
+        if looks_like_credential(value):
+            raise ValueError("Reason appears to contain a credential or secret; remove it and try again")
+        return value
+
+
+class ModelActivationOut(BaseModel):
+    version: str
+    previous_version: str | None
+    changed: bool = Field(description="False when the requested version was already active (nothing was written)")
+    active_version: str
 
 
 # ---------- models / metrics ----------
@@ -85,6 +159,15 @@ class ModelInfoOut(BaseModel):
     disclaimer: str | None = None
 
 
+class MetricsDatasetOut(BaseModel):
+    """Public dataset facts behind the metrics. Allow-listed: never the dataset location or file names."""
+    participant_count: int | None = None
+    segments: int | None = None
+    rejected_segments: int | None = None
+    class_balance: dict[str, int | float] | None = None
+    fingerprint: str | None = None
+
+
 class MetricsOut(BaseModel):
     available: bool
     message: str | None = None
@@ -95,7 +178,7 @@ class MetricsOut(BaseModel):
     test: dict[str, Any] | None = None
     test_reference_majority: dict[str, Any] | None = None
     cross_validation: dict[str, Any] | None = None
-    dataset: dict[str, Any] | None = None
+    dataset: MetricsDatasetOut | None = None
     graphs: list[str] = Field(default_factory=list)
 
 

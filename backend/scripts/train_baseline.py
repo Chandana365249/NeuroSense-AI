@@ -1,6 +1,10 @@
 """Train the baseline model on real DEAP data and print held-out results.
 
-Usage (from backend/):  python -m scripts.train_baseline [--no-cv]
+Usage (from backend/):  python -m scripts.train_baseline [--no-cv] [--activate]
+
+The new model is saved as an inactive candidate. It replaces the active model only with --activate (or later through
+the administrator endpoint POST /api/models/{version}/activate). A running API server keeps serving the model it
+loaded until it is restarted or a model is activated through the API.
 """
 
 from __future__ import annotations
@@ -21,15 +25,18 @@ def _fmt(m: dict) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-cv", action="store_true", help="skip leave-one-participant-out cross-validation")
+    parser.add_argument("--activate", action="store_true",
+                        help="make the new model the active model (default: save it as an inactive candidate)")
     args = parser.parse_args()
     settings = get_settings()
     configure_logging("WARNING", settings.log_dir)
 
-    result = BaselineTrainer(settings, run_cross_validation=not args.no_cv).run(
+    result = BaselineTrainer(settings, run_cross_validation=not args.no_cv, activate=args.activate).run(
         progress=lambda stage, frac: print(f"[{frac:4.0%}] {stage}")
     )
     m = result.metadata
     print(f"\nModel version : {result.version}")
+    print("Status        : " + ("ACTIVE (--activate)" if args.activate else "inactive candidate (the active model is unchanged)"))
     print(f"Label         : {m['label']['description']}")
     print(f"Split         : train {m['split']['train']} | val {m['split']['validation']} | test {m['split']['test']}")
     print(f"Segments      : {m['split']['segments']}")

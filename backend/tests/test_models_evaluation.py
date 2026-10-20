@@ -97,7 +97,7 @@ def test_registry_detects_tampered_model(tmp_path: Path) -> None:
     X, y = _toy()
     model = candidate_models(0)["majority_baseline"]().fit(X, y)
     registry = ModelRegistry(tmp_path)
-    registry.save("v1", model, {"trained_at": "2026-01-01T00:00:00+00:00"})
+    registry.save("v1", model, {"trained_at": "2026-01-01T00:00:00+00:00"}, activate=True)
     loaded, meta = registry.load()
     assert meta["version"] == "v1" and list(loaded.classes_) == ["apple", "zebra"]
     (tmp_path / "v1" / "model.joblib").write_bytes(b"tampered")

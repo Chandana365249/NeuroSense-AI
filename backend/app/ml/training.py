@@ -8,6 +8,7 @@
 5. Refit the chosen algorithm on train + validation, evaluate once on the unseen test participants.
 6. Optional leave-one-participant-out CV over the non-test participants, to show subject variability.
 7. Save model, metadata (feature schema, class mapping, config, metrics), predictions and figures.
+   The new version is registered as an inactive candidate unless `activate=True` is passed explicitly.
 """
 
 from __future__ import annotations
@@ -59,8 +60,10 @@ def _evaluate(model: Any, table: FeatureTable, y: np.ndarray) -> tuple[dict[str,
 
 
 class BaselineTrainer:
-    def __init__(self, settings: Settings, dataset: DEAPDataset | None = None, run_cross_validation: bool = True) -> None:
+    def __init__(self, settings: Settings, dataset: DEAPDataset | None = None, run_cross_validation: bool = True,
+                 activate: bool = False) -> None:
         self.settings = settings
+        self.activate = activate
         self.dataset = dataset or make_dataset(settings)
         self.preprocessor = make_preprocessor(settings)
         self.extractor = make_feature_extractor(settings)
@@ -157,7 +160,7 @@ class BaselineTrainer:
             "artifacts": {"graphs": graphs, "test_predictions": predictions_path},
             "disclaimer": DISCLAIMER,
         }
-        self.registry.save(version, final_model, metadata, activate=True)
+        self.registry.save(version, final_model, metadata, activate=self.activate)
         saved = self.registry.metadata(version)
         self.reporter.save_metrics(saved | {"feature_schema": {"version": FEATURE_VERSION, "count": len(table.feature_names)}},
                                    f"{version}.json")

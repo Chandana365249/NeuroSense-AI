@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import math
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import AnalysisSession, AuditLog, Metric, MLModel, Prediction, Report, User
@@ -87,21 +88,51 @@ class ModelRepository:
         return model
 
     def set_active(self, model: MLModel) -> None:
-        self.db.execute(update(MLModel).where(MLModel.id != model.id).values(is_active=False))
-        model.is_active = True
+        """Make `model` the only active model. Rows whose flag is already correct are not written."""
+        for other in self.db.scalars(select(MLModel).where(MLModel.id != model.id, MLModel.is_active.is_(True))):
+            other.is_active = False
+        if not model.is_active:
+            model.is_active = True
         self.db.flush()
+
+
+def _same_value(a: float | None, b: float | None) -> bool:
+    """Exact equality; None only equals None, and NaN equals NaN (so an unchanged NaN is not rewritten each time)."""
+    if a is None or b is None:
+        return a is None and b is None
+    a, b = float(a), float(b)
+    return a == b or (math.isnan(a) and math.isnan(b))
+
+
+def _metrics_match(stored: list[Metric], expected: list[tuple[str, str, str, float | None]]) -> bool:
+    """True only if both sides hold exactly the same metric keys, each once, with equal values."""
+    stored_map = {(m.split, m.level, m.name): m.value for m in stored}
+    expected_map = {(s, lv, n): v for s, lv, n, v in expected}
+    if len(stored_map) != len(stored) or len(expected_map) != len(expected):
+        return False  # duplicate keys: never treated as a match
+    if stored_map.keys() != expected_map.keys():
+        return False  # missing or unexpected metrics
+    return all(_same_value(stored_map[k], expected_map[k]) for k in expected_map)
 
 
 class MetricRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def replace_for_model(self, model_id: int, rows: list[tuple[str, str, str, float | None]]) -> None:
-        for existing in self.db.scalars(select(Metric).where(Metric.model_id == model_id)):
-            self.db.delete(existing)
+    def replace_for_model(self, model_id: int, rows: list[tuple[str, str, str, float | None]]) -> bool:
+        """Make the model's stored metrics equal `rows`. Returns True if anything was written.
+
+        If the stored records already match exactly (same split/level/name keys and values; database IDs and
+        timestamps ignored), nothing is written. Otherwise all of the model's metric rows are replaced, as before."""
+        existing = list(self.db.scalars(select(Metric).where(Metric.model_id == model_id)))
+        if _metrics_match(existing, rows):
+            return False
+        for row in existing:
+            self.db.delete(row)
         self.db.flush()
         self.db.add_all(Metric(model_id=model_id, split=s, level=lv, name=n, value=v) for s, lv, n, v in rows)
         self.db.flush()
+        return True
 
     def for_model(self, model_id: int) -> list[Metric]:
         return list(self.db.scalars(select(Metric).where(Metric.model_id == model_id).order_by(Metric.split, Metric.level, Metric.name)))

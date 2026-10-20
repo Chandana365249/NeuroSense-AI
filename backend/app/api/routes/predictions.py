@@ -4,11 +4,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, status
 
-from app.api.deps import ClientIP, CurrentUser, DatasetDep, DbSession, ModelServiceDep, SettingsDep
+from app.api.deps import AdminUser, ClientIP, CurrentUser, DatasetDep, DbSession, ModelServiceDep, SettingsDep
 from app.core.exceptions import NotFoundError
 from app.repositories import AuditRepository, PredictionRepository, ReportRepository, SessionRepository
 from app.schemas.schemas import PredictionListOut, PredictionOut, PredictionRequest, ReportOut, SessionCreate, SessionOut
 from app.services.prediction_service import PredictionService, to_prediction_out
+from app.services.public_metadata import sanitize_report_content
 
 router = APIRouter()
 
@@ -54,6 +55,10 @@ def list_sessions(user: CurrentUser, db: DbSession, limit: Limit = 50, offset: O
     return [SessionOut.model_validate(s).model_copy(update={"prediction_count": counts.get(s.id, 0)}) for s in items]
 
 
-@router.get("/reports", response_model=list[ReportOut], tags=["reports"], summary="Training/evaluation reports")
-def list_reports(user: CurrentUser, db: DbSession, limit: Limit = 20, offset: Offset = 0) -> list[ReportOut]:
-    return [ReportOut.model_validate(r) for r in ReportRepository(db).list(limit, offset)]
+@router.get("/reports", response_model=list[ReportOut], tags=["reports"],
+            summary="Training/evaluation reports (administrator only)")
+def list_reports(_: AdminUser, db: DbSession, limit: Limit = 20, offset: Offset = 0) -> list[ReportOut]:
+    # Stored content keeps internal details; responses get a sanitised copy (the ORM objects are not modified).
+    return [ReportOut(id=r.id, report_type=r.report_type, title=r.title, content=sanitize_report_content(r.content),
+                      model_id=r.model_id, user_id=r.user_id, created_at=r.created_at)
+            for r in ReportRepository(db).list(limit, offset)]

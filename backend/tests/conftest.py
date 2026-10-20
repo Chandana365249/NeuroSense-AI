@@ -75,7 +75,7 @@ def make_settings(dataset_dir: Path, output_dir: Path, db_path: Path) -> Setting
 def trained_output_dir(tmp_path_factory: pytest.TempPathFactory, fake_deap_dir: Path) -> Path:
     out = tmp_path_factory.mktemp("trained_outputs")
     settings = make_settings(fake_deap_dir, out, out / "unused.sqlite3")
-    BaselineTrainer(settings, run_cross_validation=True).run()
+    BaselineTrainer(settings, run_cross_validation=True, activate=True).run()  # shared fixture: explicitly active
     return out
 
 

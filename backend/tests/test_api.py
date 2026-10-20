@@ -8,11 +8,10 @@ from tests.conftest import register_and_login
 
 # ---------- health & auth ----------
 def test_health(client: TestClient) -> None:
+    # Public liveness only; database, model and dataset details are covered by
+    # test_api_hardening.test_admin_diagnostics_for_administrator.
     body = client.get("/api/health").json()
-    assert body["status"] == "ok"
-    assert body["database"] == {"connected": True, "dialect": "sqlite"}
-    assert body["dataset_available"] is True
-    assert body["model"]["loaded"] is False
+    assert body == {"status": "ok", "version": client.app.version}  # type: ignore[attr-defined]
 
 
 def test_openapi_docs_available(client: TestClient) -> None:
@@ -164,9 +163,14 @@ def test_training_via_api_creates_report(client: TestClient) -> None:
     r = client.post("/api/train", json={"run_cross_validation": False}, headers=headers)
     assert r.status_code == 202 and r.json()["state"] == "running"
     client.app.state.training_service.wait(timeout=300)  # type: ignore[attr-defined]
-    status = client.get("/api/training/status").json()
+    status = client.get("/api/training/status", headers=headers).json()  # administrator only
     assert status["state"] == "succeeded", status
-    assert client.get("/api/model-info").json()["version"] == status["model_version"]
+    # Training registers an inactive candidate; it never becomes the active model by itself.
+    assert client.get("/api/model-info").json()["available"] is False
+    assert client.app.state.model_service.registry.active_version() is None  # type: ignore[attr-defined]
+    models = client.get("/api/models").json()
+    assert [(m["version"], m["is_active"]) for m in models] == [(status["model_version"], False)]
     reports = client.get("/api/reports", headers=headers).json()
     assert reports[0]["report_type"] == "training"
     assert reports[0]["content"]["version"] == status["model_version"]
+    assert set(reports[0]["content"]["dataset"]) == {"participant_count", "segments", "rejected_segments", "class_balance", "fingerprint"}
