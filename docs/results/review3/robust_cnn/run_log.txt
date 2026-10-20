@@ -1,0 +1,80 @@
+[1/28] repeated_seeds__train_stats__seed-42: train ['s02', 's03', 's05', 's07', 's08', 's15', 's22'] | val ['s16', 's25'] | evaluate ['s01', 's09', 's11']
+    -> best epoch 2/12, macro-F1 0.525, acc 0.542, AUC 0.5766340404234261, 338.7 s
+[2/28] repeated_seeds__train_stats__seed-43: train ['s02', 's03', 's05', 's07', 's08', 's15', 's22'] | val ['s16', 's25'] | evaluate ['s01', 's09', 's11']
+    -> best epoch 2/12, macro-F1 0.378, acc 0.532, AUC 0.5742758190742476, 227.5 s
+[3/28] repeated_seeds__train_stats__seed-44: train ['s02', 's03', 's05', 's07', 's08', 's15', 's22'] | val ['s16', 's25'] | evaluate ['s01', 's09', 's11']
+    -> best epoch 4/14, macro-F1 0.554, acc 0.554, AUC 0.57155884703046, 265.8 s
+[4/28] repeated_seeds__train_stats__seed-45: train ['s02', 's03', 's05', 's07', 's08', 's15', 's22'] | val ['s16', 's25'] | evaluate ['s01', 's09', 's11']
+    -> best epoch 16/26, macro-F1 0.322, acc 0.475, AUC 0.4450678678543071, 950.0 s
+[5/28] repeated_seeds__train_stats__seed-46: train ['s02', 's03', 's05', 's07', 's08', 's15', 's22'] | val ['s16', 's25'] | evaluate ['s01', 's09', 's11']
+    -> best epoch 2/12, macro-F1 0.553, acc 0.556, AUC 0.5705453135995364, 289.3 s
+[6/28] repeated_seeds__per_participant__seed-42: train ['s02', 's03', 's05', 's07', 's08', 's15', 's22'] | val ['s16', 's25'] | evaluate ['s01', 's09', 's11']
+    -> best epoch 10/20, macro-F1 0.350, acc 0.477, AUC 0.44939796365077755, 687.8 s
+[7/28] repeated_seeds__per_participant__seed-43: train ['s02', 's03', 's05', 's07', 's08', 's15', 's22'] | val ['s16', 's25'] | evaluate ['s01', 's09', 's11']
+[1/28] repeated_seeds__train_stats__seed-42: already done
+[2/28] repeated_seeds__train_stats__seed-43: already done
+[3/28] repeated_seeds__train_stats__seed-44: already done
+[4/28] repeated_seeds__train_stats__seed-45: already done
+[5/28] repeated_seeds__train_stats__seed-46: already done
+[6/28] repeated_seeds__per_participant__seed-42: already done
+[7/28] repeated_seeds__per_participant__seed-43: train ['s02', 's03', 's05', 's07', 's08', 's15', 's22'] | val ['s16', 's25'] | evaluate ['s01', 's09', 's11']
+    -> best epoch 23/33, macro-F1 0.351, acc 0.475, AUC 0.44564048915531773, 848.3 s
+[8/28] repeated_seeds__per_participant__seed-44: train ['s02', 's03', 's05', 's07', 's08', 's15', 's22'] | val ['s16', 's25'] | evaluate ['s01', 's09', 's11']
+    -> best epoch 4/14, macro-F1 0.494, acc 0.521, AUC 0.5605586224976825, 301.4 s
+[9/28] repeated_seeds__per_participant__seed-45: train ['s02', 's03', 's05', 's07', 's08', 's15', 's22'] | val ['s16', 's25'] | evaluate ['s01', 's09', 's11']
+    -> best epoch 11/21, macro-F1 0.452, acc 0.476, AUC 0.4821270654820367, 582.2 s
+[10/28] repeated_seeds__per_participant__seed-46: train ['s02', 's03', 's05', 's07', 's08', 's15', 's22'] | val ['s16', 's25'] | evaluate ['s01', 's09', 's11']
+    -> best epoch 2/12, macro-F1 0.460, acc 0.471, AUC 0.4702318457723238, 234.5 s
+[11/28] lopo__train_stats__fold-s02: train ['s03', 's05', 's07', 's16', 's22', 's25'] | val ['s08', 's15'] | evaluate ['s02']
+    -> best epoch 1/11, macro-F1 0.483, acc 0.486, AUC 0.4675619603005495, 116.3 s
+[12/28] lopo__train_stats__fold-s03: train ['s02', 's05', 's07', 's16', 's22', 's25'] | val ['s08', 's15'] | evaluate ['s03']
+    -> best epoch 7/17, macro-F1 0.310, acc 0.449, AUC 0.567199148029819, 290.0 s
+[13/28] lopo__train_stats__fold-s05: train ['s02', 's03', 's07', 's16', 's22', 's25'] | val ['s08', 's15'] | evaluate ['s05']
+    -> best epoch 1/11, macro-F1 0.449, acc 0.472, AUC 0.5529076208660397, 197.7 s
+[14/28] lopo__train_stats__fold-s07: train ['s02', 's03', 's05', 's16', 's22', 's25'] | val ['s08', 's15'] | evaluate ['s07']
+    -> best epoch 13/23, macro-F1 0.412, acc 0.700, AUC 0.6326719576719577, 1067.3 s
+[15/28] lopo__train_stats__fold-s08: train ['s02', 's03', 's05', 's16', 's22', 's25'] | val ['s07', 's15'] | evaluate ['s08']
+    -> best epoch 5/15, macro-F1 0.344, acc 0.433, AUC 0.49223880597014924, 1508.6 s
+[16/28] lopo__train_stats__fold-s15: train ['s02', 's03', 's05', 's16', 's22', 's25'] | val ['s07', 's08'] | evaluate ['s15']
+[1/28] repeated_seeds__train_stats__seed-42: already done
+[2/28] repeated_seeds__train_stats__seed-43: already done
+[3/28] repeated_seeds__train_stats__seed-44: already done
+[4/28] repeated_seeds__train_stats__seed-45: already done
+[5/28] repeated_seeds__train_stats__seed-46: already done
+[6/28] repeated_seeds__per_participant__seed-42: already done
+[7/28] repeated_seeds__per_participant__seed-43: already done
+[8/28] repeated_seeds__per_participant__seed-44: already done
+[9/28] repeated_seeds__per_participant__seed-45: already done
+[10/28] repeated_seeds__per_participant__seed-46: already done
+[11/28] lopo__train_stats__fold-s02: already done
+[12/28] lopo__train_stats__fold-s03: already done
+[13/28] lopo__train_stats__fold-s05: already done
+[14/28] lopo__train_stats__fold-s07: already done
+[15/28] lopo__train_stats__fold-s08: already done
+[16/28] lopo__train_stats__fold-s15: train ['s02', 's03', 's05', 's16', 's22', 's25'] | val ['s07', 's08'] | evaluate ['s15']
+    -> best epoch 13/23, macro-F1 0.354, acc 0.501, AUC 0.5605264355264354, 789.3 s
+[17/28] lopo__train_stats__fold-s16: train ['s02', 's03', 's05', 's15', 's22', 's25'] | val ['s07', 's08'] | evaluate ['s16']
+    -> best epoch 9/19, macro-F1 0.441, acc 0.513, AUC 0.37606196008340786, 828.0 s
+[18/28] lopo__train_stats__fold-s22: train ['s02', 's03', 's05', 's15', 's16', 's25'] | val ['s07', 's08'] | evaluate ['s22']
+    -> best epoch 5/15, macro-F1 0.309, acc 0.446, AUC 0.32166764533176745, 290.7 s
+[19/28] lopo__train_stats__fold-s25: train ['s02', 's03', 's05', 's15', 's16', 's22'] | val ['s07', 's08'] | evaluate ['s25']
+    -> best epoch 29/39, macro-F1 0.344, acc 0.525, AUC 0.5814830330959363, 837.3 s
+[20/28] lopo__per_participant__fold-s02: train ['s03', 's05', 's07', 's16', 's22', 's25'] | val ['s08', 's15'] | evaluate ['s02']
+    -> best epoch 1/11, macro-F1 0.347, acc 0.443, AUC 0.406274531793204, 158.2 s
+[21/28] lopo__per_participant__fold-s03: train ['s02', 's05', 's07', 's16', 's22', 's25'] | val ['s08', 's15'] | evaluate ['s03']
+    -> best epoch 1/11, macro-F1 0.412, acc 0.544, AUC 0.550986656643488, 152.1 s
+[22/28] lopo__per_participant__fold-s05: train ['s02', 's03', 's07', 's16', 's22', 's25'] | val ['s08', 's15'] | evaluate ['s05']
+    -> best epoch 9/19, macro-F1 0.383, acc 0.600, AUC 0.5469674469038022, 741.7 s
+[23/28] lopo__per_participant__fold-s07: train ['s02', 's03', 's05', 's16', 's22', 's25'] | val ['s08', 's15'] | evaluate ['s07']
+    -> best epoch 19/29, macro-F1 0.508, acc 0.693, AUC 0.668531746031746, 716.9 s
+[24/28] lopo__per_participant__fold-s08: train ['s02', 's03', 's05', 's16', 's22', 's25'] | val ['s07', 's15'] | evaluate ['s08']
+    -> best epoch 26/36, macro-F1 0.458, acc 0.477, AUC 0.533203214695752, 1026.2 s
+[25/28] lopo__per_participant__fold-s15: train ['s02', 's03', 's05', 's16', 's22', 's25'] | val ['s07', 's08'] | evaluate ['s15']
+    -> best epoch 31/41, macro-F1 0.403, acc 0.519, AUC 0.7429361179361179, 606.3 s
+[26/28] lopo__per_participant__fold-s16: train ['s02', 's03', 's05', 's15', 's22', 's25'] | val ['s07', 's08'] | evaluate ['s16']
+    -> best epoch 7/17, macro-F1 0.387, acc 0.600, AUC 0.34296097706285367, 236.3 s
+[27/28] lopo__per_participant__fold-s22: train ['s02', 's03', 's05', 's15', 's16', 's25'] | val ['s07', 's08'] | evaluate ['s22']
+    -> best epoch 6/16, macro-F1 0.425, acc 0.569, AUC 0.701080446271286, 270.2 s
+[28/28] lopo__per_participant__fold-s25: train ['s02', 's03', 's05', 's15', 's16', 's22'] | val ['s07', 's08'] | evaluate ['s25']
+    -> best epoch 4/14, macro-F1 0.351, acc 0.525, AUC 0.4544174463529302, 215.4 s
+Report: ..\outputs\experiments\cnn_robust_20261009\REPORT.md

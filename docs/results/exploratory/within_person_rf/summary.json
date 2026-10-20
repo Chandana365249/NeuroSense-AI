@@ -1,0 +1,338 @@
+{
+  "label": "exploratory (12 participants, Protocol v1.1)",
+  "design": {
+    "folds": "stratified 5-fold over trials, per participant",
+    "seeds": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "model": "registered random_forest configuration",
+    "trial_rule": "mean segment probability, argmax",
+    "label_rule": "valence > 5.0"
+  },
+  "fingerprint": "3c5359083bc90ae5",
+  "git_commit": "755345c",
+  "permutation": {
+    "seed": 42,
+    "n_perm": 250,
+    "complete": true,
+    "method": "trial labels permuted within participant; full 5-fold CV re-run per permutation"
+  },
+  "participants": [
+    {
+      "participant": "s01",
+      "n_high": 19,
+      "n_low": 21,
+      "n_borderline_4.5_5.5": 2,
+      "n_segments": 600,
+      "ba_mean": 0.5097744360902255,
+      "ba_sd": 0.05264202068518515,
+      "f1_mean": 0.5093548599453606,
+      "auc_mean": 0.49523809523809526,
+      "pred_high_share": 0.495,
+      "true_high_share": 0.475,
+      "ba_ci_seed_avg": [
+        0.3771929824561403,
+        0.6779448621553885
+      ],
+      "ba_seed_avg": 0.5275689223057645,
+      "perm_seed42_ba": 0.575187969924812,
+      "perm_p": 0.199203187250996,
+      "perm_q_bh": 0.23469757334299166
+    },
+    {
+      "participant": "s02",
+      "n_high": 22,
+      "n_low": 18,
+      "n_borderline_4.5_5.5": 9,
+      "n_segments": 537,
+      "ba_mean": 0.6686868686868687,
+      "ba_sd": 0.037344719829897656,
+      "f1_mean": 0.6692654200530141,
+      "auc_mean": 0.6767676767676767,
+      "pred_high_share": 0.63,
+      "true_high_share": 0.55,
+      "ba_ci_seed_avg": [
+        0.547979797979798,
+        0.8207070707070707
+      ],
+      "ba_seed_avg": 0.6868686868686869,
+      "perm_seed42_ba": 0.6868686868686869,
+      "perm_p": 0.027888446215139442,
+      "perm_q_bh": 0.08366533864541832
+    },
+    {
+      "participant": "s03",
+      "n_high": 22,
+      "n_low": 18,
+      "n_borderline_4.5_5.5": 13,
+      "n_segments": 568,
+      "ba_mean": 0.706060606060606,
+      "ba_sd": 0.04261620830248278,
+      "f1_mean": 0.7062956935079697,
+      "auc_mean": 0.7696969696969697,
+      "pred_high_share": 0.5599999999999999,
+      "true_high_share": 0.55,
+      "ba_ci_seed_avg": [
+        0.6186868686868687,
+        0.8763888888888882
+      ],
+      "ba_seed_avg": 0.7474747474747474,
+      "perm_seed42_ba": 0.6464646464646464,
+      "perm_p": 0.06772908366533864,
+      "perm_q_bh": 0.13545816733067728
+    },
+    {
+      "participant": "s05",
+      "n_high": 24,
+      "n_low": 16,
+      "n_borderline_4.5_5.5": 6,
+      "n_segments": 595,
+      "ba_mean": 0.625,
+      "ba_sd": 0.03755782578608318,
+      "f1_mean": 0.6264004730419825,
+      "auc_mean": 0.7276041666666666,
+      "pred_high_share": 0.675,
+      "true_high_share": 0.6,
+      "ba_ci_seed_avg": [
+        0.5208333333333333,
+        0.7916666666666667
+      ],
+      "ba_seed_avg": 0.65625,
+      "perm_seed42_ba": 0.6770833333333333,
+      "perm_p": 0.043824701195219126,
+      "perm_q_bh": 0.10517928286852589
+    },
+    {
+      "participant": "s07",
+      "n_high": 28,
+      "n_low": 12,
+      "n_borderline_4.5_5.5": 5,
+      "n_segments": 600,
+      "ba_mean": 0.4499999999999999,
+      "ba_sd": 0.05640646543086728,
+      "f1_mean": 0.44676032380139735,
+      "auc_mean": 0.5565476190476191,
+      "pred_high_share": 0.73,
+      "true_high_share": 0.7,
+      "ba_ci_seed_avg": [
+        0.3331845238095238,
+        0.5953869047619039
+      ],
+      "ba_seed_avg": 0.4583333333333333,
+      "perm_seed42_ba": 0.4642857142857143,
+      "perm_p": 0.6254980079681275,
+      "perm_q_bh": 0.6254980079681275
+    },
+    {
+      "participant": "s08",
+      "n_high": 22,
+      "n_low": 18,
+      "n_borderline_4.5_5.5": 11,
+      "n_segments": 593,
+      "ba_mean": 0.6121212121212121,
+      "ba_sd": 0.03613847236363297,
+      "f1_mean": 0.6119071139331804,
+      "auc_mean": 0.6454545454545455,
+      "pred_high_share": 0.5900000000000001,
+      "true_high_share": 0.55,
+      "ba_ci_seed_avg": [
+        0.4949494949494949,
+        0.797979797979798
+      ],
+      "ba_seed_avg": 0.6464646464646464,
+      "perm_seed42_ba": 0.5909090909090908,
+      "perm_p": 0.1752988047808765,
+      "perm_q_bh": 0.2337317397078353
+    },
+    {
+      "participant": "s09",
+      "n_high": 20,
+      "n_low": 20,
+      "n_borderline_4.5_5.5": 10,
+      "n_segments": 596,
+      "ba_mean": 0.6449999999999999,
+      "ba_sd": 0.04808846015417837,
+      "f1_mean": 0.6441561153624921,
+      "auc_mean": 0.7500000000000001,
+      "pred_high_share": 0.485,
+      "true_high_share": 0.5,
+      "ba_ci_seed_avg": [
+        0.5,
+        0.8
+      ],
+      "ba_seed_avg": 0.6499999999999999,
+      "perm_seed42_ba": 0.7,
+      "perm_p": 0.0199203187250996,
+      "perm_q_bh": 0.0796812749003984
+    },
+    {
+      "participant": "s11",
+      "n_high": 24,
+      "n_low": 16,
+      "n_borderline_4.5_5.5": 8,
+      "n_segments": 592,
+      "ba_mean": 0.53125,
+      "ba_sd": 0.04166666666666666,
+      "f1_mean": 0.5254700531068817,
+      "auc_mean": 0.5046875,
+      "pred_high_share": 0.6,
+      "true_high_share": 0.6,
+      "ba_ci_seed_avg": [
+        0.38541666666666663,
+        0.6979166666666667
+      ],
+      "ba_seed_avg": 0.5416666666666667,
+      "perm_seed42_ba": 0.5833333333333333,
+      "perm_p": 0.2151394422310757,
+      "perm_q_bh": 0.23469757334299166
+    },
+    {
+      "participant": "s15",
+      "n_high": 20,
+      "n_low": 20,
+      "n_borderline_4.5_5.5": 5,
+      "n_segments": 593,
+      "ba_mean": 0.76,
+      "ba_sd": 0.013693063937629103,
+      "f1_mean": 0.7592402596686563,
+      "auc_mean": 0.8255000000000001,
+      "pred_high_share": 0.5199999999999999,
+      "true_high_share": 0.5,
+      "ba_ci_seed_avg": [
+        0.6499999999999999,
+        0.8999999999999999
+      ],
+      "ba_seed_avg": 0.775,
+      "perm_seed42_ba": 0.7749999999999999,
+      "perm_p": 0.00398406374501992,
+      "perm_q_bh": 0.04780876494023904
+    },
+    {
+      "participant": "s16",
+      "n_high": 15,
+      "n_low": 25,
+      "n_borderline_4.5_5.5": 5,
+      "n_segments": 598,
+      "ba_mean": 0.6506666666666667,
+      "ba_sd": 0.049575979846875236,
+      "f1_mean": 0.6525958034450197,
+      "auc_mean": 0.6938666666666667,
+      "pred_high_share": 0.34500000000000003,
+      "true_high_share": 0.375,
+      "ba_ci_seed_avg": [
+        0.4733333333333334,
+        0.78
+      ],
+      "ba_seed_avg": 0.6333333333333333,
+      "perm_seed42_ba": 0.6133333333333333,
+      "perm_p": 0.09561752988047809,
+      "perm_q_bh": 0.163915765509391
+    },
+    {
+      "participant": "s22",
+      "n_high": 18,
+      "n_low": 22,
+      "n_borderline_4.5_5.5": 7,
+      "n_segments": 587,
+      "ba_mean": 0.7515151515151516,
+      "ba_sd": 0.03781981941978043,
+      "f1_mean": 0.753703987692125,
+      "auc_mean": 0.7606060606060605,
+      "pred_high_share": 0.38999999999999996,
+      "true_high_share": 0.45,
+      "ba_ci_seed_avg": [
+        0.6641414141414141,
+        0.9166666666666667
+      ],
+      "ba_seed_avg": 0.7929292929292929,
+      "perm_seed42_ba": 0.7651515151515151,
+      "perm_p": 0.00796812749003984,
+      "perm_q_bh": 0.04780876494023904
+    },
+    {
+      "participant": "s25",
+      "n_high": 19,
+      "n_low": 21,
+      "n_borderline_4.5_5.5": 9,
+      "n_segments": 587,
+      "ba_mean": 0.5942355889724311,
+      "ba_sd": 0.011081549358112359,
+      "f1_mean": 0.5929296776536829,
+      "auc_mean": 0.6040100250626567,
+      "pred_high_share": 0.48,
+      "true_high_share": 0.475,
+      "ba_ci_seed_avg": [
+        0.393421052631579,
+        0.6992481203007519
+      ],
+      "ba_seed_avg": 0.5488721804511278,
+      "perm_seed42_ba": 0.5964912280701754,
+      "perm_p": 0.1593625498007968,
+      "perm_q_bh": 0.2337317397078353
+    }
+  ],
+  "group": {
+    "ba": {
+      "n": 12,
+      "mean": 0.6253592108427635,
+      "std": 0.09017158760918303,
+      "sd_sample": 0.09418115162886259,
+      "min": 0.4499999999999999,
+      "max": 0.76,
+      "ci_low": 0.5655193619798935,
+      "ci_high": 0.6851990597056334
+    },
+    "f1": {
+      "n": 12,
+      "mean": 0.6248399817676469,
+      "std": 0.0915300680544373,
+      "sd_sample": 0.09560003817829167,
+      "min": 0.44676032380139735,
+      "max": 0.7592402596686563,
+      "ci_low": 0.5640986154015085,
+      "ci_high": 0.6855813481337852
+    },
+    "auc": {
+      "n": 12,
+      "mean": 0.6674982771005799,
+      "std": 0.10339499291019444,
+      "sd_sample": 0.10799254802017587,
+      "min": 0.49523809523809526,
+      "max": 0.8255000000000001,
+      "ci_low": 0.5988830856309616,
+      "ci_high": 0.7361134685701981
+    },
+    "ba_vs_0.5_wilcoxon": {
+      "n": 12,
+      "median_difference": 0.13499999999999995,
+      "statistic": 3.0,
+      "p_value": 0.00244140625
+    },
+    "n_participants_ba_above_0.5": 11,
+    "group_permutation": {
+      "observed_mean_ba_seed42": 0.6395090709728868,
+      "p": 0.00398406374501992,
+      "null_mean_ba_95th_percentile": 0.5421017486107947
+    },
+    "significant_after_bh_q_0.05": [
+      "s15",
+      "s22"
+    ]
+  },
+  "cross_participant_reference": {
+    "random_forest_lopo": {
+      "version": "valence_binary-random_forest-20261008-180558",
+      "trial_accuracy_mean": 0.5027777777777778,
+      "segment_accuracy_mean": 0.5104149673982532,
+      "note": "9 non-test participants; trial balanced accuracy was not recorded"
+    },
+    "cnn_lopo_train_stats": {
+      "trial_balanced_accuracy_mean": 0.4947053872053872,
+      "segment_balanced_accuracy_mean": 0.49395033048612036
+    }
+  }
+}

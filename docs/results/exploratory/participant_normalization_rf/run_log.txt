@@ -1,0 +1,12 @@
+s01: personal BA A 0.488 -> B 0.547 | consensus BA A 0.527 -> B 0.418
+s02: personal BA A 0.432 -> B 0.515 | consensus BA A 0.479 -> B 0.515
+s03: personal BA A 0.504 -> B 0.530 | consensus BA A 0.475 -> B 0.471
+s05: personal BA A 0.504 -> B 0.571 | consensus BA A 0.510 -> B 0.596
+s07: personal BA A 0.517 -> B 0.548 | consensus BA A 0.545 -> B 0.555
+s08: personal BA A 0.482 -> B 0.529 | consensus BA A 0.426 -> B 0.513
+s09: personal BA A 0.510 -> B 0.660 | consensus BA A 0.475 -> B 0.635
+s11: personal BA A 0.490 -> B 0.525 | consensus BA A 0.453 -> B 0.487
+s15: personal BA A 0.485 -> B 0.555 | consensus BA A 0.530 -> B 0.493
+s16: personal BA A 0.535 -> B 0.545 | consensus BA A 0.380 -> B 0.421
+s22: personal BA A 0.559 -> B 0.483 | consensus BA A 0.485 -> B 0.405
+s25: personal BA A 0.500 -> B 0.408 | consensus BA A 0.500 -> B 0.515

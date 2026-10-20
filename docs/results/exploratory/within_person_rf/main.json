@@ -1,0 +1,909 @@
+{
+  "label": "exploratory (12 participants, Protocol v1.1)",
+  "created_at": "2026-10-10T17:23:27.658263+00:00",
+  "git_commit": "755345c",
+  "design": {
+    "folds": "stratified 5-fold over trials, per participant",
+    "seeds": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "model": "registered random_forest configuration",
+    "trial_rule": "mean segment probability, argmax",
+    "label_rule": "valence > 5.0"
+  },
+  "fingerprint": "3c5359083bc90ae5",
+  "participants": {
+    "s01": {
+      "n_trials": 40,
+      "n_segments": 600,
+      "n_high": 19,
+      "n_low": 21,
+      "n_borderline_4.5_5.5": 2,
+      "per_seed": [
+        {
+          "seed": 42,
+          "balanced_accuracy": 0.575187969924812,
+          "f1_macro": 0.5747342088805503,
+          "roc_auc": 0.5388471177944862,
+          "accuracy": 0.575,
+          "predicted_high_share": 0.5
+        },
+        {
+          "seed": 43,
+          "balanced_accuracy": 0.44862155388471175,
+          "f1_macro": 0.44862155388471175,
+          "roc_auc": 0.37844611528822053,
+          "accuracy": 0.45,
+          "predicted_high_share": 0.475
+        },
+        {
+          "seed": 44,
+          "balanced_accuracy": 0.5513784461152882,
+          "f1_macro": 0.55,
+          "roc_auc": 0.5288220551378446,
+          "accuracy": 0.55,
+          "predicted_high_share": 0.525
+        },
+        {
+          "seed": 45,
+          "balanced_accuracy": 0.474937343358396,
+          "f1_macro": 0.474671669793621,
+          "roc_auc": 0.506265664160401,
+          "accuracy": 0.475,
+          "predicted_high_share": 0.5
+        },
+        {
+          "seed": 46,
+          "balanced_accuracy": 0.4987468671679198,
+          "f1_macro": 0.4987468671679198,
+          "roc_auc": 0.5238095238095238,
+          "accuracy": 0.5,
+          "predicted_high_share": 0.475
+        }
+      ],
+      "seed_mean": {
+        "balanced_accuracy": 0.5097744360902255,
+        "f1_macro": 0.5093548599453606,
+        "roc_auc": 0.49523809523809526,
+        "accuracy": 0.51,
+        "predicted_high_share": 0.495
+      },
+      "seed_sd": {
+        "balanced_accuracy": 0.05264202068518515,
+        "f1_macro": 0.052274454402162225,
+        "roc_auc": 0.06634743702365635,
+        "accuracy": 0.05184110338331929,
+        "predicted_high_share": 0.02091650066335191
+      },
+      "seed_averaged_proba_metrics": {
+        "balanced_accuracy": 0.5275689223057645,
+        "f1_macro": 0.5247029393370857,
+        "roc_auc": 0.5087719298245614,
+        "accuracy": 0.525,
+        "predicted_high_share": 0.55
+      },
+      "classes": [
+        "high_valence",
+        "low_valence"
+      ]
+    },
+    "s02": {
+      "n_trials": 40,
+      "n_segments": 537,
+      "n_high": 22,
+      "n_low": 18,
+      "n_borderline_4.5_5.5": 9,
+      "per_seed": [
+        {
+          "seed": 42,
+          "balanced_accuracy": 0.6868686868686869,
+          "f1_macro": 0.6875,
+          "roc_auc": 0.6944444444444444,
+          "accuracy": 0.7,
+          "predicted_high_share": 0.65
+        },
+        {
+          "seed": 43,
+          "balanced_accuracy": 0.6186868686868687,
+          "f1_macro": 0.6190476190476191,
+          "roc_auc": 0.6742424242424242,
+          "accuracy": 0.625,
+          "predicted_high_share": 0.575
+        },
+        {
+          "seed": 44,
+          "balanced_accuracy": 0.6868686868686869,
+          "f1_macro": 0.6875,
+          "roc_auc": 0.7146464646464646,
+          "accuracy": 0.7,
+          "predicted_high_share": 0.65
+        },
+        {
+          "seed": 45,
+          "balanced_accuracy": 0.7095959595959596,
+          "f1_macro": 0.7103357472021066,
+          "roc_auc": 0.6414141414141414,
+          "accuracy": 0.725,
+          "predicted_high_share": 0.675
+        },
+        {
+          "seed": 46,
+          "balanced_accuracy": 0.6414141414141414,
+          "f1_macro": 0.6419437340153453,
+          "roc_auc": 0.6590909090909091,
+          "accuracy": 0.65,
+          "predicted_high_share": 0.6
+        }
+      ],
+      "seed_mean": {
+        "balanced_accuracy": 0.6686868686868687,
+        "f1_macro": 0.6692654200530141,
+        "roc_auc": 0.6767676767676767,
+        "accuracy": 0.6799999999999999,
+        "predicted_high_share": 0.63
+      },
+      "seed_sd": {
+        "balanced_accuracy": 0.037344719829897656,
+        "f1_macro": 0.03748357523495431,
+        "roc_auc": 0.02879230871462469,
+        "accuracy": 0.04107919181288743,
+        "predicted_high_share": 0.041079191812887494
+      },
+      "seed_averaged_proba_metrics": {
+        "balanced_accuracy": 0.6868686868686869,
+        "f1_macro": 0.6875,
+        "roc_auc": 0.6717171717171717,
+        "accuracy": 0.7,
+        "predicted_high_share": 0.65
+      },
+      "classes": [
+        "high_valence",
+        "low_valence"
+      ]
+    },
+    "s03": {
+      "n_trials": 40,
+      "n_segments": 568,
+      "n_high": 22,
+      "n_low": 18,
+      "n_borderline_4.5_5.5": 13,
+      "per_seed": [
+        {
+          "seed": 42,
+          "balanced_accuracy": 0.6464646464646464,
+          "f1_macro": 0.6464646464646464,
+          "roc_auc": 0.7702020202020202,
+          "accuracy": 0.65,
+          "predicted_high_share": 0.55
+        },
+        {
+          "seed": 43,
+          "balanced_accuracy": 0.696969696969697,
+          "f1_macro": 0.696969696969697,
+          "roc_auc": 0.76010101010101,
+          "accuracy": 0.7,
+          "predicted_high_share": 0.55
+        },
+        {
+          "seed": 44,
+          "balanced_accuracy": 0.7474747474747474,
+          "f1_macro": 0.7474747474747474,
+          "roc_auc": 0.76010101010101,
+          "accuracy": 0.75,
+          "predicted_high_share": 0.55
+        },
+        {
+          "seed": 45,
+          "balanced_accuracy": 0.6919191919191919,
+          "f1_macro": 0.6930946291560103,
+          "roc_auc": 0.7626262626262627,
+          "accuracy": 0.7,
+          "predicted_high_share": 0.6
+        },
+        {
+          "seed": 46,
+          "balanced_accuracy": 0.7474747474747474,
+          "f1_macro": 0.7474747474747474,
+          "roc_auc": 0.7954545454545454,
+          "accuracy": 0.75,
+          "predicted_high_share": 0.55
+        }
+      ],
+      "seed_mean": {
+        "balanced_accuracy": 0.706060606060606,
+        "f1_macro": 0.7062956935079697,
+        "roc_auc": 0.7696969696969697,
+        "accuracy": 0.71,
+        "predicted_high_share": 0.5599999999999999
+      },
+      "seed_sd": {
+        "balanced_accuracy": 0.04261620830248278,
+        "f1_macro": 0.042521834017814876,
+        "roc_auc": 0.014982219165849818,
+        "accuracy": 0.04183300132670378,
+        "predicted_high_share": 0.02236067977499787
+      },
+      "seed_averaged_proba_metrics": {
+        "balanced_accuracy": 0.7474747474747474,
+        "f1_macro": 0.7474747474747474,
+        "roc_auc": 0.7676767676767676,
+        "accuracy": 0.75,
+        "predicted_high_share": 0.55
+      },
+      "classes": [
+        "high_valence",
+        "low_valence"
+      ]
+    },
+    "s05": {
+      "n_trials": 40,
+      "n_segments": 595,
+      "n_high": 24,
+      "n_low": 16,
+      "n_borderline_4.5_5.5": 6,
+      "per_seed": [
+        {
+          "seed": 42,
+          "balanced_accuracy": 0.6770833333333333,
+          "f1_macro": 0.6799999999999999,
+          "roc_auc": 0.7317708333333334,
+          "accuracy": 0.7,
+          "predicted_high_share": 0.65
+        },
+        {
+          "seed": 43,
+          "balanced_accuracy": 0.6354166666666667,
+          "f1_macro": 0.636617749825297,
+          "roc_auc": 0.7526041666666666,
+          "accuracy": 0.675,
+          "predicted_high_share": 0.725
+        },
+        {
+          "seed": 44,
+          "balanced_accuracy": 0.625,
+          "f1_macro": 0.6266666666666667,
+          "roc_auc": 0.7265625,
+          "accuracy": 0.65,
+          "predicted_high_share": 0.65
+        },
+        {
+          "seed": 45,
+          "balanced_accuracy": 0.5729166666666667,
+          "f1_macro": 0.5733333333333334,
+          "roc_auc": 0.6979166666666666,
+          "accuracy": 0.6,
+          "predicted_high_share": 0.65
+        },
+        {
+          "seed": 46,
+          "balanced_accuracy": 0.6145833333333333,
+          "f1_macro": 0.6153846153846154,
+          "roc_auc": 0.7291666666666666,
+          "accuracy": 0.65,
+          "predicted_high_share": 0.7
+        }
+      ],
+      "seed_mean": {
+        "balanced_accuracy": 0.625,
+        "f1_macro": 0.6264004730419825,
+        "roc_auc": 0.7276041666666666,
+        "accuracy": 0.655,
+        "predicted_high_share": 0.675
+      },
+      "seed_sd": {
+        "balanced_accuracy": 0.03755782578608318,
+        "f1_macro": 0.03845400931899227,
+        "roc_auc": 0.019539928627400074,
+        "accuracy": 0.03708099243547831,
+        "predicted_high_share": 0.03535533905932735
+      },
+      "seed_averaged_proba_metrics": {
+        "balanced_accuracy": 0.65625,
+        "f1_macro": 0.6581196581196581,
+        "roc_auc": 0.7161458333333334,
+        "accuracy": 0.7,
+        "predicted_high_share": 0.75
+      },
+      "classes": [
+        "high_valence",
+        "low_valence"
+      ]
+    },
+    "s07": {
+      "n_trials": 40,
+      "n_segments": 600,
+      "n_high": 28,
+      "n_low": 12,
+      "n_borderline_4.5_5.5": 5,
+      "per_seed": [
+        {
+          "seed": 42,
+          "balanced_accuracy": 0.4642857142857143,
+          "f1_macro": 0.4642857142857143,
+          "roc_auc": 0.5625,
+          "accuracy": 0.55,
+          "predicted_high_share": 0.7
+        },
+        {
+          "seed": 43,
+          "balanced_accuracy": 0.4226190476190476,
+          "f1_macro": 0.42028985507246375,
+          "roc_auc": 0.5476190476190477,
+          "accuracy": 0.525,
+          "predicted_high_share": 0.725
+        },
+        {
+          "seed": 44,
+          "balanced_accuracy": 0.39880952380952384,
+          "f1_macro": 0.38660209846650523,
+          "roc_auc": 0.5803571428571429,
+          "accuracy": 0.525,
+          "predicted_high_share": 0.775
+        },
+        {
+          "seed": 45,
+          "balanced_accuracy": 0.5416666666666666,
+          "f1_macro": 0.5423340961098397,
+          "roc_auc": 0.5684523809523809,
+          "accuracy": 0.625,
+          "predicted_high_share": 0.725
+        },
+        {
+          "seed": 46,
+          "balanced_accuracy": 0.4226190476190476,
+          "f1_macro": 0.42028985507246375,
+          "roc_auc": 0.5238095238095238,
+          "accuracy": 0.525,
+          "predicted_high_share": 0.725
+        }
+      ],
+      "seed_mean": {
+        "balanced_accuracy": 0.4499999999999999,
+        "f1_macro": 0.44676032380139735,
+        "roc_auc": 0.5565476190476191,
+        "accuracy": 0.55,
+        "predicted_high_share": 0.73
+      },
+      "seed_sd": {
+        "balanced_accuracy": 0.05640646543086728,
+        "f1_macro": 0.060128755121398314,
+        "roc_auc": 0.021768956604654447,
+        "accuracy": 0.043301270189221926,
+        "predicted_high_share": 0.02738612787525833
+      },
+      "seed_averaged_proba_metrics": {
+        "balanced_accuracy": 0.4583333333333333,
+        "f1_macro": 0.45117029862792574,
+        "roc_auc": 0.5446428571428571,
+        "accuracy": 0.575,
+        "predicted_high_share": 0.775
+      },
+      "classes": [
+        "high_valence",
+        "low_valence"
+      ]
+    },
+    "s08": {
+      "n_trials": 40,
+      "n_segments": 593,
+      "n_high": 22,
+      "n_low": 18,
+      "n_borderline_4.5_5.5": 11,
+      "per_seed": [
+        {
+          "seed": 42,
+          "balanced_accuracy": 0.5909090909090908,
+          "f1_macro": 0.5907928388746804,
+          "roc_auc": 0.6161616161616161,
+          "accuracy": 0.6,
+          "predicted_high_share": 0.6
+        },
+        {
+          "seed": 43,
+          "balanced_accuracy": 0.5732323232323233,
+          "f1_macro": 0.5725958516656191,
+          "roc_auc": 0.6111111111111112,
+          "accuracy": 0.575,
+          "predicted_high_share": 0.525
+        },
+        {
+          "seed": 44,
+          "balanced_accuracy": 0.6136363636363636,
+          "f1_macro": 0.6131528046421664,
+          "roc_auc": 0.6868686868686869,
+          "accuracy": 0.625,
+          "predicted_high_share": 0.625
+        },
+        {
+          "seed": 45,
+          "balanced_accuracy": 0.6136363636363636,
+          "f1_macro": 0.6131528046421664,
+          "roc_auc": 0.6363636363636364,
+          "accuracy": 0.625,
+          "predicted_high_share": 0.625
+        },
+        {
+          "seed": 46,
+          "balanced_accuracy": 0.6691919191919192,
+          "f1_macro": 0.6698412698412699,
+          "roc_auc": 0.6767676767676768,
+          "accuracy": 0.675,
+          "predicted_high_share": 0.575
+        }
+      ],
+      "seed_mean": {
+        "balanced_accuracy": 0.6121212121212121,
+        "f1_macro": 0.6119071139331804,
+        "roc_auc": 0.6454545454545455,
+        "accuracy": 0.6199999999999999,
+        "predicted_high_share": 0.5900000000000001
+      },
+      "seed_sd": {
+        "balanced_accuracy": 0.03613847236363297,
+        "f1_macro": 0.03657409555881975,
+        "roc_auc": 0.03469810916629831,
+        "accuracy": 0.03708099243547835,
+        "predicted_high_share": 0.04183300132670377
+      },
+      "seed_averaged_proba_metrics": {
+        "balanced_accuracy": 0.6464646464646464,
+        "f1_macro": 0.6464646464646464,
+        "roc_auc": 0.6666666666666666,
+        "accuracy": 0.65,
+        "predicted_high_share": 0.55
+      },
+      "classes": [
+        "high_valence",
+        "low_valence"
+      ]
+    },
+    "s09": {
+      "n_trials": 40,
+      "n_segments": 596,
+      "n_high": 20,
+      "n_low": 20,
+      "n_borderline_4.5_5.5": 10,
+      "per_seed": [
+        {
+          "seed": 42,
+          "balanced_accuracy": 0.7,
+          "f1_macro": 0.6992481203007519,
+          "roc_auc": 0.7525,
+          "accuracy": 0.7,
+          "predicted_high_share": 0.55
+        },
+        {
+          "seed": 43,
+          "balanced_accuracy": 0.575,
+          "f1_macro": 0.5747342088805503,
+          "roc_auc": 0.66,
+          "accuracy": 0.575,
+          "predicted_high_share": 0.525
+        },
+        {
+          "seed": 44,
+          "balanced_accuracy": 0.6499999999999999,
+          "f1_macro": 0.6491228070175439,
+          "roc_auc": 0.7875,
+          "accuracy": 0.65,
+          "predicted_high_share": 0.45
+        },
+        {
+          "seed": 45,
+          "balanced_accuracy": 0.675,
+          "f1_macro": 0.6747967479674797,
+          "roc_auc": 0.78,
+          "accuracy": 0.675,
+          "predicted_high_share": 0.475
+        },
+        {
+          "seed": 46,
+          "balanced_accuracy": 0.625,
+          "f1_macro": 0.6228786926461345,
+          "roc_auc": 0.77,
+          "accuracy": 0.625,
+          "predicted_high_share": 0.425
+        }
+      ],
+      "seed_mean": {
+        "balanced_accuracy": 0.6449999999999999,
+        "f1_macro": 0.6441561153624921,
+        "roc_auc": 0.7500000000000001,
+        "accuracy": 0.6449999999999999,
+        "predicted_high_share": 0.485
+      },
+      "seed_sd": {
+        "balanced_accuracy": 0.04808846015417837,
+        "f1_macro": 0.04814243247278195,
+        "roc_auc": 0.05199158585771354,
+        "accuracy": 0.04808846015417837,
+        "predicted_high_share": 0.05184110338331933
+      },
+      "seed_averaged_proba_metrics": {
+        "balanced_accuracy": 0.6499999999999999,
+        "f1_macro": 0.6491228070175439,
+        "roc_auc": 0.76,
+        "accuracy": 0.65,
+        "predicted_high_share": 0.45
+      },
+      "classes": [
+        "high_valence",
+        "low_valence"
+      ]
+    },
+    "s11": {
+      "n_trials": 40,
+      "n_segments": 592,
+      "n_high": 24,
+      "n_low": 16,
+      "n_borderline_4.5_5.5": 8,
+      "per_seed": [
+        {
+          "seed": 42,
+          "balanced_accuracy": 0.5833333333333333,
+          "f1_macro": 0.5833333333333333,
+          "roc_auc": 0.5625,
+          "accuracy": 0.6,
+          "predicted_high_share": 0.6
+        },
+        {
+          "seed": 43,
+          "balanced_accuracy": 0.46875,
+          "f1_macro": 0.44727272727272727,
+          "roc_auc": 0.5182291666666666,
+          "accuracy": 0.525,
+          "predicted_high_share": 0.775
+        },
+        {
+          "seed": 44,
+          "balanced_accuracy": 0.5416666666666667,
+          "f1_macro": 0.5396419437340154,
+          "roc_auc": 0.4635416666666667,
+          "accuracy": 0.55,
+          "predicted_high_share": 0.55
+        },
+        {
+          "seed": 45,
+          "balanced_accuracy": 0.5416666666666667,
+          "f1_macro": 0.5396419437340154,
+          "roc_auc": 0.4166666666666667,
+          "accuracy": 0.55,
+          "predicted_high_share": 0.55
+        },
+        {
+          "seed": 46,
+          "balanced_accuracy": 0.5208333333333333,
+          "f1_macro": 0.5174603174603174,
+          "roc_auc": 0.5625,
+          "accuracy": 0.525,
+          "predicted_high_share": 0.525
+        }
+      ],
+      "seed_mean": {
+        "balanced_accuracy": 0.53125,
+        "f1_macro": 0.5254700531068817,
+        "roc_auc": 0.5046875,
+        "accuracy": 0.55,
+        "predicted_high_share": 0.6
+      },
+      "seed_sd": {
+        "balanced_accuracy": 0.04166666666666666,
+        "f1_macro": 0.049821736720031394,
+        "roc_auc": 0.06385255231782046,
+        "accuracy": 0.030618621784789708,
+        "predicted_high_share": 0.1015504800579495
+      },
+      "seed_averaged_proba_metrics": {
+        "balanced_accuracy": 0.5416666666666667,
+        "f1_macro": 0.5396419437340154,
+        "roc_auc": 0.4973958333333333,
+        "accuracy": 0.55,
+        "predicted_high_share": 0.55
+      },
+      "classes": [
+        "high_valence",
+        "low_valence"
+      ]
+    },
+    "s15": {
+      "n_trials": 40,
+      "n_segments": 593,
+      "n_high": 20,
+      "n_low": 20,
+      "n_borderline_4.5_5.5": 5,
+      "per_seed": [
+        {
+          "seed": 42,
+          "balanced_accuracy": 0.7749999999999999,
+          "f1_macro": 0.7737272155876807,
+          "roc_auc": 0.835,
+          "accuracy": 0.775,
+          "predicted_high_share": 0.575
+        },
+        {
+          "seed": 43,
+          "balanced_accuracy": 0.75,
+          "f1_macro": 0.75,
+          "roc_auc": 0.835,
+          "accuracy": 0.75,
+          "predicted_high_share": 0.5
+        },
+        {
+          "seed": 44,
+          "balanced_accuracy": 0.7749999999999999,
+          "f1_macro": 0.7737272155876807,
+          "roc_auc": 0.85,
+          "accuracy": 0.775,
+          "predicted_high_share": 0.425
+        },
+        {
+          "seed": 45,
+          "balanced_accuracy": 0.75,
+          "f1_macro": 0.7493734335839599,
+          "roc_auc": 0.81,
+          "accuracy": 0.75,
+          "predicted_high_share": 0.55
+        },
+        {
+          "seed": 46,
+          "balanced_accuracy": 0.75,
+          "f1_macro": 0.7493734335839599,
+          "roc_auc": 0.7975,
+          "accuracy": 0.75,
+          "predicted_high_share": 0.55
+        }
+      ],
+      "seed_mean": {
+        "balanced_accuracy": 0.76,
+        "f1_macro": 0.7592402596686563,
+        "roc_auc": 0.8255000000000001,
+        "accuracy": 0.76,
+        "predicted_high_share": 0.5199999999999999
+      },
+      "seed_sd": {
+        "balanced_accuracy": 0.013693063937629103,
+        "f1_macro": 0.013227194490093085,
+        "roc_auc": 0.021242645786247984,
+        "accuracy": 0.013693063937629165,
+        "predicted_high_share": 0.059686681931566614
+      },
+      "seed_averaged_proba_metrics": {
+        "balanced_accuracy": 0.775,
+        "f1_macro": 0.7748592870544091,
+        "roc_auc": 0.8375,
+        "accuracy": 0.775,
+        "predicted_high_share": 0.525
+      },
+      "classes": [
+        "high_valence",
+        "low_valence"
+      ]
+    },
+    "s16": {
+      "n_trials": 40,
+      "n_segments": 598,
+      "n_high": 15,
+      "n_low": 25,
+      "n_borderline_4.5_5.5": 5,
+      "per_seed": [
+        {
+          "seed": 42,
+          "balanced_accuracy": 0.6133333333333333,
+          "f1_macro": 0.6153846153846154,
+          "roc_auc": 0.688,
+          "accuracy": 0.65,
+          "predicted_high_share": 0.325
+        },
+        {
+          "seed": 43,
+          "balanced_accuracy": 0.72,
+          "f1_macro": 0.7252747252747254,
+          "roc_auc": 0.7173333333333334,
+          "accuracy": 0.75,
+          "predicted_high_share": 0.325
+        },
+        {
+          "seed": 44,
+          "balanced_accuracy": 0.6666666666666667,
+          "f1_macro": 0.6703296703296704,
+          "roc_auc": 0.7066666666666667,
+          "accuracy": 0.7,
+          "predicted_high_share": 0.325
+        },
+        {
+          "seed": 45,
+          "balanced_accuracy": 0.6599999999999999,
+          "f1_macro": 0.6576695194206715,
+          "roc_auc": 0.68,
+          "accuracy": 0.675,
+          "predicted_high_share": 0.4
+        },
+        {
+          "seed": 46,
+          "balanced_accuracy": 0.5933333333333333,
+          "f1_macro": 0.5943204868154158,
+          "roc_auc": 0.6773333333333333,
+          "accuracy": 0.625,
+          "predicted_high_share": 0.35
+        }
+      ],
+      "seed_mean": {
+        "balanced_accuracy": 0.6506666666666667,
+        "f1_macro": 0.6525958034450197,
+        "roc_auc": 0.6938666666666667,
+        "accuracy": 0.6799999999999999,
+        "predicted_high_share": 0.34500000000000003
+      },
+      "seed_sd": {
+        "balanced_accuracy": 0.049575979846875236,
+        "f1_macro": 0.050997900329229046,
+        "roc_auc": 0.017425396536218184,
+        "accuracy": 0.04808846015417835,
+        "predicted_high_share": 0.03259601202601325
+      },
+      "seed_averaged_proba_metrics": {
+        "balanced_accuracy": 0.6333333333333333,
+        "f1_macro": 0.636617749825297,
+        "roc_auc": 0.6986666666666667,
+        "accuracy": 0.675,
+        "predicted_high_share": 0.3
+      },
+      "classes": [
+        "high_valence",
+        "low_valence"
+      ]
+    },
+    "s22": {
+      "n_trials": 40,
+      "n_segments": 587,
+      "n_high": 18,
+      "n_low": 22,
+      "n_borderline_4.5_5.5": 7,
+      "per_seed": [
+        {
+          "seed": 42,
+          "balanced_accuracy": 0.7651515151515151,
+          "f1_macro": 0.7678916827852997,
+          "roc_auc": 0.7474747474747475,
+          "accuracy": 0.775,
+          "predicted_high_share": 0.375
+        },
+        {
+          "seed": 43,
+          "balanced_accuracy": 0.7651515151515151,
+          "f1_macro": 0.7678916827852997,
+          "roc_auc": 0.76010101010101,
+          "accuracy": 0.775,
+          "predicted_high_share": 0.375
+        },
+        {
+          "seed": 44,
+          "balanced_accuracy": 0.7929292929292929,
+          "f1_macro": 0.7953964194373402,
+          "roc_auc": 0.7954545454545454,
+          "accuracy": 0.8,
+          "predicted_high_share": 0.4
+        },
+        {
+          "seed": 45,
+          "balanced_accuracy": 0.6919191919191919,
+          "f1_macro": 0.6930946291560103,
+          "roc_auc": 0.76010101010101,
+          "accuracy": 0.7,
+          "predicted_high_share": 0.4
+        },
+        {
+          "seed": 46,
+          "balanced_accuracy": 0.7424242424242424,
+          "f1_macro": 0.7442455242966752,
+          "roc_auc": 0.73989898989899,
+          "accuracy": 0.75,
+          "predicted_high_share": 0.4
+        }
+      ],
+      "seed_mean": {
+        "balanced_accuracy": 0.7515151515151516,
+        "f1_macro": 0.753703987692125,
+        "roc_auc": 0.7606060606060605,
+        "accuracy": 0.76,
+        "predicted_high_share": 0.38999999999999996
+      },
+      "seed_sd": {
+        "balanced_accuracy": 0.03781981941978043,
+        "f1_macro": 0.03841808532743915,
+        "roc_auc": 0.021308104151241368,
+        "accuracy": 0.03791437722025778,
+        "predicted_high_share": 0.013693063937629167
+      },
+      "seed_averaged_proba_metrics": {
+        "balanced_accuracy": 0.7929292929292929,
+        "f1_macro": 0.7953964194373402,
+        "roc_auc": 0.7626262626262627,
+        "accuracy": 0.8,
+        "predicted_high_share": 0.4
+      },
+      "classes": [
+        "high_valence",
+        "low_valence"
+      ]
+    },
+    "s25": {
+      "n_trials": 40,
+      "n_segments": 587,
+      "n_high": 19,
+      "n_low": 21,
+      "n_borderline_4.5_5.5": 9,
+      "per_seed": [
+        {
+          "seed": 42,
+          "balanced_accuracy": 0.5964912280701754,
+          "f1_macro": 0.595959595959596,
+          "roc_auc": 0.5889724310776943,
+          "accuracy": 0.6,
+          "predicted_high_share": 0.425
+        },
+        {
+          "seed": 43,
+          "balanced_accuracy": 0.5989974937343359,
+          "f1_macro": 0.5989974937343359,
+          "roc_auc": 0.6240601503759399,
+          "accuracy": 0.6,
+          "predicted_high_share": 0.475
+        },
+        {
+          "seed": 44,
+          "balanced_accuracy": 0.575187969924812,
+          "f1_macro": 0.5747342088805503,
+          "roc_auc": 0.5889724310776943,
+          "accuracy": 0.575,
+          "predicted_high_share": 0.5
+        },
+        {
+          "seed": 45,
+          "balanced_accuracy": 0.6040100250626567,
+          "f1_macro": 0.5989974937343359,
+          "roc_auc": 0.5764411027568922,
+          "accuracy": 0.6,
+          "predicted_high_share": 0.575
+        },
+        {
+          "seed": 46,
+          "balanced_accuracy": 0.5964912280701754,
+          "f1_macro": 0.595959595959596,
+          "roc_auc": 0.6416040100250626,
+          "accuracy": 0.6,
+          "predicted_high_share": 0.425
+        }
+      ],
+      "seed_mean": {
+        "balanced_accuracy": 0.5942355889724311,
+        "f1_macro": 0.5929296776536829,
+        "roc_auc": 0.6040100250626567,
+        "accuracy": 0.595,
+        "predicted_high_share": 0.48
+      },
+      "seed_sd": {
+        "balanced_accuracy": 0.011081549358112359,
+        "f1_macro": 0.010284365290725541,
+        "roc_auc": 0.027511902757017724,
+        "accuracy": 0.011180339887498959,
+        "predicted_high_share": 0.06224949798994365
+      },
+      "seed_averaged_proba_metrics": {
+        "balanced_accuracy": 0.5488721804511278,
+        "f1_macro": 0.5488721804511278,
+        "roc_auc": 0.6140350877192983,
+        "accuracy": 0.55,
+        "predicted_high_share": 0.475
+      },
+      "classes": [
+        "high_valence",
+        "low_valence"
+      ]
+    }
+  }
+}

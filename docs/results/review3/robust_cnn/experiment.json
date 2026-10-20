@@ -1,0 +1,153 @@
+{
+  "created_at": "2026-10-08T18:40:08.310324+00:00",
+  "label": {
+    "strategy": "valence_binary",
+    "description": "Binary valence: high_valence if self-reported valence > 5.0 (1-9 scale), else low_valence"
+  },
+  "class_labels": [
+    "high_valence",
+    "low_valence"
+  ],
+  "architecture": {
+    "name": "EEGNet-style CNN",
+    "config": {
+      "n_channels": 32,
+      "n_samples": 512,
+      "n_classes": 2,
+      "temporal_filters": 8,
+      "depth_multiplier": 2,
+      "separable_filters": 16,
+      "temporal_kernel": 64,
+      "separable_kernel": 16,
+      "pool1": 4,
+      "pool2": 8,
+      "dropout": 0.5
+    },
+    "parameters": 2130
+  },
+  "training_config": {
+    "max_epochs": 60,
+    "patience": 10,
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "weight_decay": 0.01,
+    "class_weighting": true,
+    "selection_metric": "f1_macro",
+    "final_fit": "train+validation",
+    "seed": 42,
+    "num_threads": 4,
+    "optimizer": "AdamW",
+    "loss": "cross-entropy (balanced class weights)"
+  },
+  "preprocessing": {
+    "sampling_rate": 128,
+    "n_channels": 32,
+    "baseline_seconds": 3.0,
+    "low_hz": 4.0,
+    "high_hz": 45.0,
+    "filter_order": 4,
+    "artifact_clip_sigma": 6.0,
+    "max_clipped_fraction": 0.05,
+    "segment_seconds": 4.0
+  },
+  "input": {
+    "representation": "preprocessed 4 s segments (channels x samples)",
+    "segment_cache": "seg-v1",
+    "shape": [
+      1,
+      32,
+      512
+    ]
+  },
+  "dataset": {
+    "fingerprint": "3c5359083bc90ae5",
+    "participants": [
+      "s01",
+      "s02",
+      "s03",
+      "s05",
+      "s07",
+      "s08",
+      "s09",
+      "s11",
+      "s15",
+      "s16",
+      "s22",
+      "s25"
+    ],
+    "segments": 7046,
+    "rejected_segments": 154,
+    "class_balance": {
+      "high_valence": 3714,
+      "low_valence": 3332
+    }
+  },
+  "split": {
+    "train": [
+      "s02",
+      "s03",
+      "s05",
+      "s07",
+      "s08",
+      "s15",
+      "s22"
+    ],
+    "validation": [
+      "s16",
+      "s25"
+    ],
+    "test": [
+      "s01",
+      "s09",
+      "s11"
+    ],
+    "seed": 42
+  },
+  "normalizations": {
+    "train_stats": "per-channel z-score with statistics of the fitted (training) participants only",
+    "per_participant": "per-channel z-score with each participant's own statistics (unlabelled; assumes a calibration recording per person), followed by the train_stats step"
+  },
+  "framework": "pytorch 2.14.1+cpu",
+  "git_commit": "755345c",
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "protocols": [
+    "repeated_seeds",
+    "lopo"
+  ],
+  "runs": [
+    "repeated_seeds__train_stats__seed-42",
+    "repeated_seeds__train_stats__seed-43",
+    "repeated_seeds__train_stats__seed-44",
+    "repeated_seeds__train_stats__seed-45",
+    "repeated_seeds__train_stats__seed-46",
+    "repeated_seeds__per_participant__seed-42",
+    "repeated_seeds__per_participant__seed-43",
+    "repeated_seeds__per_participant__seed-44",
+    "repeated_seeds__per_participant__seed-45",
+    "repeated_seeds__per_participant__seed-46",
+    "lopo__train_stats__fold-s02",
+    "lopo__train_stats__fold-s03",
+    "lopo__train_stats__fold-s05",
+    "lopo__train_stats__fold-s07",
+    "lopo__train_stats__fold-s08",
+    "lopo__train_stats__fold-s15",
+    "lopo__train_stats__fold-s16",
+    "lopo__train_stats__fold-s22",
+    "lopo__train_stats__fold-s25",
+    "lopo__per_participant__fold-s02",
+    "lopo__per_participant__fold-s03",
+    "lopo__per_participant__fold-s05",
+    "lopo__per_participant__fold-s07",
+    "lopo__per_participant__fold-s08",
+    "lopo__per_participant__fold-s15",
+    "lopo__per_participant__fold-s16",
+    "lopo__per_participant__fold-s22",
+    "lopo__per_participant__fold-s25"
+  ]
+}

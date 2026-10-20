@@ -8,6 +8,10 @@
 
 LSTM, CNN-LSTM, Transformer, XAI and deployment are deliberately **not** started.
 
+> **Update (Phase A, robust CNN evaluation):** the single-run CNN numbers below were re-examined with 5 seeds, nested leave-one-participant-out cross-validation, two normalizations, bootstrap CIs and permutation tests. See [REVIEW3_CNN_ROBUST_EVALUATION.md](REVIEW3_CNN_ROBUST_EVALUATION.md).
+> - The registered run is reproduced exactly, but it is one of the better seeds: 5-seed test macro-F1 is 0.466 ± 0.109.
+> - In LOPO the CNN is at chance (balanced accuracy 0.494 ± 0.023).
+
 **Baseline:** `review2.1`. Work is on the branch `review3/deep-learning-foundation`.
 
 > This is a research prototype. All numbers below come from real DEAP recordings and participants the model never saw during training. They estimate self-reported valence and are not a diagnosis.
@@ -147,7 +151,7 @@ The full outputs are in `docs/results/review3/` (`model_comparison_*.md`, `.json
 ## 10. Limitations
 
 - **Small data:** 12 of 32 DEAP participants; 2 validation and 3 test participants, so the score differences between models are within the expected noise.
-- **Single split, no repeats:** one split and one seed, with no cross-validation or repeated seeds for the CNN yet. There are no confidence intervals or permutation tests.
+- **Single split, no repeats:** sections 6–9 describe one split and one seed. This has since been addressed in [REVIEW3_CNN_ROBUST_EVALUATION.md](REVIEW3_CNN_ROBUST_EVALUATION.md).
 - **Quick early stop:** stopping at epoch 2 shows validation macro-F1 is a noisy signal with only 2 validation participants.
 - **No subject adaptation:** there is no per-participant normalization or domain adaptation, which is the most likely cause of the poor transfer.
 - **Not tuned:** hyperparameters are EEGNet-style defaults and were deliberately left untuned.
@@ -156,11 +160,9 @@ The full outputs are in `docs/results/review3/` (`model_comparison_*.md`, `.json
 
 ## 11. What remains (next phases of Review 3)
 
-1. **Evaluation robustness:**
-   - leave-one-participant-out cross-validation for the CNN (and repeated seeds), as already exists for the Random Forest;
-   - confidence intervals and permutation tests against chance.
+1. **Evaluation robustness:** done (Phase A). Repeated seeds, nested LOPO, CIs and permutation/Wilcoxon tests; see [REVIEW3_CNN_ROBUST_EVALUATION.md](REVIEW3_CNN_ROBUST_EVALUATION.md).
 2. **Better input representation:**
-   - per-participant normalization (unsupervised, no labels needed);
+   - per-participant normalization: evaluated in Phase A, no improvement in discrimination;
    - possibly arousal and quadrant targets.
 3. **CNN-LSTM:** reuse `EEGCNN`'s convolutional front end over sequences of segments within a trial.
 4. **LSTM / Transformer** comparisons under the same protocol.
@@ -178,6 +180,6 @@ cd backend
 ..\.venv\Scripts\python -m scripts.segment_summary      # build/verify segment table (real DEAP)
 ..\.venv\Scripts\python -m scripts.train_cnn            # train + evaluate CNN (~8 min CPU)
 ..\.venv\Scripts\python -m scripts.compare_models       # RF / SVM / XGBoost / CNN table
-..\.venv\Scripts\python -m pytest                       # 91 tests
+..\.venv\Scripts\python -m pytest                       # 104 tests (91 at this milestone + 13 robust-evaluation tests)
 ..\.venv\Scripts\python -m pytest -m integration        # 2 real-DEAP tests
 ```

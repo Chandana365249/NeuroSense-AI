@@ -1,0 +1,14 @@
+s01: observed BA 0.575, permutation p 0.1992
+s02: observed BA 0.687, permutation p 0.0279
+s01: already done
+s02: already done
+s03: observed BA 0.646, permutation p 0.0677
+s05: observed BA 0.677, permutation p 0.0438
+s07: observed BA 0.464, permutation p 0.6255
+s08: observed BA 0.591, permutation p 0.1753
+s09: observed BA 0.700, permutation p 0.0199
+s11: observed BA 0.583, permutation p 0.2151
+s15: observed BA 0.775, permutation p 0.0040
+s16: observed BA 0.613, permutation p 0.0956
+s22: observed BA 0.765, permutation p 0.0080
+s25: observed BA 0.596, permutation p 0.1594

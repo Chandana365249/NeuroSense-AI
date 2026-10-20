@@ -1,0 +1,12 @@
+s01: personal BA 0.511 | consensus BA 0.395 | agreement 0.600
+s02: personal BA 0.683 | consensus BA 0.590 | agreement 0.775
+s03: personal BA 0.736 | consensus BA 0.820 | agreement 0.825
+s05: personal BA 0.598 | consensus BA 0.774 | agreement 0.725
+s07: personal BA 0.423 | consensus BA 0.640 | agreement 0.750
+s08: personal BA 0.582 | consensus BA 0.661 | agreement 0.775
+s09: personal BA 0.665 | consensus BA 0.685 | agreement 0.800
+s11: personal BA 0.452 | consensus BA 0.514 | agreement 0.775
+s15: personal BA 0.775 | consensus BA 0.852 | agreement 0.925
+s16: personal BA 0.680 | consensus BA 0.454 | agreement 0.500
+s22: personal BA 0.730 | consensus BA 0.780 | agreement 0.850
+s25: personal BA 0.595 | consensus BA 0.620 | agreement 0.775
