@@ -72,9 +72,14 @@ class PredictionService:
             source = "upload"
             source_reference = {"channels": int(signal.shape[0]), "samples": int(signal.shape[1]),
                                 "sampling_rate": request.eeg.sampling_rate}
+            if request.eeg.synthetic_test_signal:
+                source_reference["synthetic_test_signal"] = True
         else:
             ref = request.deap_reference
             assert ref is not None
+            if ref.participant_id not in self.settings.development_participants:
+                # Only authorized development participants may be read; frozen test participants never are.
+                raise NotFoundError(f"DEAP participant {ref.participant_id} is not available on this server")
             try:
                 signal, ratings = self.dataset.load_trial(ref.participant_id, ref.trial_index)
             except DatasetError as exc:

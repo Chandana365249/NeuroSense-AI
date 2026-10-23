@@ -68,6 +68,7 @@ def make_settings(dataset_dir: Path, output_dir: Path, db_path: Path) -> Setting
         database_url=f"sqlite:///{db_path.as_posix()}",
         test_participants=2,
         validation_participants=1,
+        development_participants=PARTICIPANTS,  # the synthetic test files s01..s06 (none of them frozen)
     )
 
 
@@ -106,9 +107,22 @@ def trained_client(trained_settings: Settings) -> Iterator[TestClient]:
     yield from _client(trained_settings)
 
 
-def register_and_login(client: TestClient, email: str = "admin@example.com", password: str = "correct-horse-battery") -> dict[str, str]:
-    r = client.post("/api/auth/register", json={"email": email, "password": password, "full_name": "Test"})
-    assert r.status_code == 201, r.text
+ADMIN_EMAIL = "admin@example.com"
+
+
+def register_and_login(client: TestClient, email: str = ADMIN_EMAIL, password: str = "correct-horse-battery",
+                       admin: bool | None = None) -> dict[str, str]:
+    """Create an account and return auth headers. The default test administrator is created through the
+    command-line bootstrap service (public registration only ever creates standard accounts)."""
+    if (email == ADMIN_EMAIL) if admin is None else admin:
+        from app.services.auth_service import AuthService
+
+        with client.app.state.db.session() as session:  # type: ignore[attr-defined]
+            AuthService(session, client.app.state.settings).bootstrap_admin(email, password, "Test")  # type: ignore[attr-defined]
+            session.commit()
+    else:
+        r = client.post("/api/auth/register", json={"email": email, "password": password, "full_name": "Test"})
+        assert r.status_code == 201, r.text
     r = client.post("/api/auth/login", data={"username": email, "password": password})
     assert r.status_code == 200, r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}"}

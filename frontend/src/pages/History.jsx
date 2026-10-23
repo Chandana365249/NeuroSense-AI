@@ -5,7 +5,8 @@ import LoadingBlock from '../components/LoadingBlock';
 import Notice from '../components/Notice';
 import PageHeader from '../components/PageHeader';
 import RequireAuth from '../components/RequireAuth';
-import { classLabel, pct, sourceLabel, when } from '../components/format';
+import { classLabel, predictionLabel, pct, sourceLabel, when } from '../components/format';
+import { isSynthetic } from '../analysis';
 import { href } from '../router';
 
 const PAGE_SIZE = 20;
@@ -122,8 +123,8 @@ function HistoryTable({ auth }) {
                 <td className="nowrap">{p.prediction_id}</td>
                 <td>{when(p.created_at)}</td>
                 <td>{sourceLabel(p)}</td>
-                <td>{classLabel(p.prediction)}</td>
-                <td className="nowrap">{pct(p.confidence)}</td>
+                <td>{predictionLabel(p)}</td>
+                <td className="nowrap">{isSynthetic(p) ? 'Not shown (synthetic)' : pct(p.confidence)}</td>
                 <td>{p.source_reference?.self_reported_label ? classLabel(p.source_reference.self_reported_label) : '—'}</td>
                 <td className="nowrap"><a href={href(`/results/${p.prediction_id}`)}>View<span className="visually-hidden"> prediction {p.prediction_id}</span></a></td>
               </tr>

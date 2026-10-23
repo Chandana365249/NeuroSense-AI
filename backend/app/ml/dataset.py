@@ -18,6 +18,7 @@ from typing import Any
 import numpy as np
 
 from app.core.logging import get_logger
+from app.ml.participants import is_frozen
 
 logger = get_logger("dataset")
 
@@ -110,8 +111,12 @@ class DEAPDataset:
         n_eeg_channels: int = 32,
         sampling_rate: int = 128,
         baseline_seconds: float = 3.0,
+        allowed_participants: frozenset[str] | None = None,
     ) -> None:
         self.root = Path(root)
+        # Optional allow-list (for example the trusted development participants). The frozen final-test
+        # participants are excluded regardless of this setting.
+        self.allowed_participants = allowed_participants
         self.n_eeg_channels = n_eeg_channels
         self.sampling_rate = sampling_rate
         self.baseline_seconds = baseline_seconds
@@ -123,7 +128,13 @@ class DEAPDataset:
     def discover(self) -> list[Path]:
         if not self.root.is_dir():
             raise DatasetError(f"Dataset directory not found: {self.root}")
-        files = sorted(p for p in self.root.iterdir() if p.is_file() and _PARTICIPANT_FILE.match(p.name))
+        candidates = sorted(p for p in self.root.iterdir() if p.is_file() and _PARTICIPANT_FILE.match(p.name))
+        frozen = [p for p in candidates if is_frozen(self.participant_id(p))]
+        if frozen:
+            # Protocol v1.1 section 6.3: development code never loads the frozen final-test group.
+            logger.warning("Frozen final-test participant files are present and are ignored", extra={"count": len(frozen)})
+        files = [p for p in candidates if not is_frozen(self.participant_id(p))
+                 and (self.allowed_participants is None or self.participant_id(p) in self.allowed_participants)]
         if not files:
             raise DatasetError(f"No DEAP participant files (sNN.dat) found in {self.root}")
         logger.info("Discovered participant files", extra={"count": len(files), "dataset_dir": str(self.root)})
@@ -138,6 +149,8 @@ class DEAPDataset:
 
     def load_participant(self, path: Path) -> ParticipantRecord:
         pid = self.participant_id(path)
+        if is_frozen(pid):
+            raise DatasetError(f"{pid} belongs to the frozen final-test group and cannot be loaded by development code")
         try:
             with path.open("rb") as fh:
                 raw = _NumpyOnlyUnpickler(fh, encoding="latin1").load()
@@ -182,7 +195,7 @@ class DEAPDataset:
 
     def load_trial(self, participant_id: str, trial_index: int) -> tuple[np.ndarray, np.ndarray]:
         path = self.root / f"{participant_id}.dat"
-        if not path.is_file():
+        if is_frozen(participant_id) or not path.is_file():
             raise DatasetError(f"Participant {participant_id} not found in dataset")
         record = self.load_participant(path)
         if not 0 <= trial_index < record.n_trials:

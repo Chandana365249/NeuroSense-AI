@@ -7,8 +7,7 @@ import PageHeader from '../components/PageHeader';
 import Stat from '../components/Stat';
 import StatusPill from '../components/StatusPill';
 import { NA } from '../components/format';
-
-const TRUSTED_PARTICIPANTS = 12;
+import { href } from '../router';
 
 // The public summary is aggregate only: the API omits the dataset location, file names, sizes and rating statistics.
 function Summary() {
@@ -38,6 +37,10 @@ function Summary() {
   const samples = readable[0]?.samples;
   const sameShape = readable.every((f) => f.samples === samples && f.trials === readable[0]?.trials);
   const seconds = typeof samples === 'number' && d.sampling_rate_hz ? samples / d.sampling_rate_hz : null;
+  const authorized = d.authorized_participants || [];
+  const readableIds = new Set(readable.map((f) => f.participant_id));
+  const missing = authorized.filter((id) => !readableIds.has(id));
+  const unexpected = [...readableIds].filter((id) => !authorized.includes(id));
 
   return (
     <>
@@ -45,14 +48,18 @@ function Summary() {
         <StatusPill tone={d.participants_valid > 0 ? 'ok' : 'error'}>{d.participants_valid > 0 ? 'Available' : 'Not readable'}</StatusPill>
         <span className="muted">{d.participants_valid} of {d.participants_found} participant files readable</span>
       </div>
-      {d.participants_found !== TRUSTED_PARTICIPANTS ? (
-        <Notice tone="warning" title="Unexpected participant count">
-          The server reports {d.participants_found} participant files, but the trusted working dataset has {TRUSTED_PARTICIPANTS}.
+      <p className="muted small">
+        Authorized development participants ({authorized.length}): {authorized.join(', ') || NA}
+      </p>
+      {missing.length || unexpected.length ? (
+        <Notice tone="warning" title="Files do not match the authorized participants">
+          {missing.length ? <>Not readable on this server: {missing.join(', ')}. </> : null}
+          {unexpected.length ? <>Present but not authorized for development: {unexpected.join(', ')}. </> : null}
           Check the server&apos;s dataset configuration before relying on results.
         </Notice>
       ) : null}
       <div className="stats-grid stats-grid-wide">
-        <Stat label="Participants" value={d.participants_valid} hint={`${d.participants_found} files found`} />
+        <Stat label="Readable participant files" value={d.participants_valid} hint={`${d.participants_found} found; not the same as a model's training participants`} />
         <Stat label="Trials" value={d.total_trials} hint={readable[0]?.trials ? `${readable[0].trials} per participant` : null} />
         <Stat label="EEG channels used" value={d.eeg_channels_used} hint={readable[0]?.channels ? `of ${readable[0].channels} channels per file` : null} />
         <Stat label="Sampling rate" value={d.sampling_rate_hz ? `${d.sampling_rate_hz} Hz` : NA} />
@@ -102,8 +109,10 @@ export default function Dataset() {
       <div className="grid-2">
         <Card title="Working dataset" titleId="working-dataset">
           <p>
-            <strong>The working, trusted dataset contains {TRUSTED_PARTICIPANTS} DEAP participants.</strong> All models and
-            exploratory results in this application come from these {TRUSTED_PARTICIPANTS} participants only.
+            <strong>The working, trusted dataset is a documented subset of DEAP participants</strong>, listed under
+            “Structure of the files” below. All models and exploratory results in this application come from them only.
+            Which of them a particular model was trained on is shown, where recorded, on{' '}
+            <a href={href('/model')}>Model &amp; Evidence</a> and in the <a href={href('/models')}>Model registry</a>.
           </p>
           <p className="muted">
             DEAP recorded 32 participants watching 40 one-minute music videos each. Every participant rated each video

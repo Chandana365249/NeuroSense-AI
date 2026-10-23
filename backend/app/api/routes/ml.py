@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Query, Request, status
 from sqlalchemy.engine import make_url
 
 from app.api.deps import AdminUser, ClientIP, DatasetDep, DbSession, ModelServiceDep, SettingsDep, TrainingServiceDep
@@ -11,12 +11,17 @@ from app.core.config import Settings
 from app.core.exceptions import InvalidInputError, ServiceUnavailableError
 from app.core.logging import get_logger
 from app.ml.dataset import DatasetError, DEAPDataset
+from app.ml.participants import is_frozen
+from app.ml.registry import ModelNotAvailableError
 from app.repositories import AuditRepository, ModelRepository
-from app.schemas.schemas import (DatasetSummaryOut, DemoTrialsOut, MetricsDatasetOut, MetricsOut, ModelActivateRequest,
+from app.schemas.schemas import (DatasetSummaryOut, DemoParticipant, DemoTrialsOut, DemoUnavailable, GlobalImportanceOut, MetricsDatasetOut, MetricsOut,
+                                 ModelActivateRequest,
                                  ModelActivationOut, ModelInfoOut, ModelSummary, ModelSyncOut, ParticipantStructure,
                                  TrainingStatusOut, TrainRequest)
+from app.services.explainability import global_importance
 from app.services.model_service import input_requirements
-from app.services.public_metadata import public_dataset_facts
+from app.services.public_metadata import (public_dataset_facts, public_evaluation, public_protocol,
+                                          training_provenance)
 
 router = APIRouter(tags=["model"])
 logger = get_logger("api")
@@ -62,8 +67,19 @@ def model_info(model_service: ModelServiceDep) -> ModelInfoOut:
         preprocessing=meta["preprocessing"],
         split=meta["split"],
         test_metrics={level: {k: v for k, v in m.items() if k not in ("confusion_matrix",)} for level, m in meta["test"].items()},
+        provenance=training_provenance(meta),
         disclaimer=meta["disclaimer"],
     )
+
+
+@router.get("/explain/global", response_model=GlobalImportanceOut, tags=["explainability"],
+            summary="Global feature importance of the active Random Forest (model-level, not a per-prediction explanation)")
+def explain_global(model_service: ModelServiceDep, top: int = Query(20, ge=1, le=100)) -> GlobalImportanceOut:
+    try:
+        snap = model_service.snapshot()  # one consistent model + metadata
+    except ModelNotAvailableError:
+        snap = None
+    return GlobalImportanceOut(**global_importance(snap, top))
 
 
 @router.get("/models", response_model=list[ModelSummary], summary="All registered model versions (read-only)")
@@ -80,6 +96,8 @@ def list_models(db: DbSession, model_service: ModelServiceDep) -> list[ModelSumm
             model_type=meta.get("model_type", m.algorithm) if meta else None,
             framework=meta.get("framework", "sklearn") if meta else None,
             test_metrics={k: test_segment.get(k) for k in ("accuracy", "balanced_accuracy", "f1_macro", "roc_auc")} if test_segment else None,
+            evaluation=public_evaluation(meta.get("evaluation"), include_folds=False),
+            provenance=training_provenance(meta) if meta else None,
         ))
     return summaries
 
@@ -90,7 +108,7 @@ def metrics(model_service: ModelServiceDep, request: Request) -> MetricsOut:
     if not meta:
         return MetricsOut(available=False, message=NOT_TRAINED)
     prefix = request.app.state.settings.api_prefix
-    graphs = [f"{prefix}/graphs/{Path(p).name}" for p in meta["artifacts"]["graphs"].values() if p]
+    graphs = [f"{prefix}/graphs/{Path(p).name}" for p in ((meta.get("artifacts") or {}).get("graphs") or {}).values() if p]
     return MetricsOut(
         available=True,
         model_version=meta["version"],
@@ -100,6 +118,8 @@ def metrics(model_service: ModelServiceDep, request: Request) -> MetricsOut:
         test=meta["test"],
         test_reference_majority=meta["test_reference_majority"],
         cross_validation=meta.get("cross_validation"),
+        evaluation=public_evaluation(meta.get("evaluation")),
+        protocol=public_protocol(meta.get("protocol")),
         dataset=MetricsDatasetOut(**public_dataset_facts(meta.get("dataset"))),
         graphs=graphs,
     )
@@ -153,7 +173,7 @@ def _dataset_summary(dataset: DEAPDataset, request: Request) -> dict[str, Any]:
 
 @router.get("/dataset/summary", response_model=DatasetSummaryOut, tags=["dataset"],
             summary="Aggregate structure of the working DEAP dataset (no paths, file names or rating statistics)")
-def dataset_summary(dataset: DatasetDep, request: Request) -> DatasetSummaryOut:
+def dataset_summary(dataset: DatasetDep, request: Request, settings: SettingsDep) -> DatasetSummaryOut:
     try:
         full = _dataset_summary(dataset, request)
     except DatasetError as exc:
@@ -169,6 +189,7 @@ def dataset_summary(dataset: DatasetDep, request: Request) -> DatasetSummaryOut:
         eeg_channel_names=full["eeg_channel_names"],
         participants=[ParticipantStructure(participant_id=f["participant_id"], readable=f["ok"], trials=f["trials"],
                                            channels=f["channels"], samples=f["samples"]) for f in full["files"]],
+        authorized_participants=list(settings.development_participants),
     )
 
 
@@ -182,12 +203,54 @@ def admin_dataset_summary(_: AdminUser, dataset: DatasetDep, request: Request) -
 
 
 @router.get("/dataset/demo-trials", tags=["dataset"], response_model=DemoTrialsOut,
-            summary="Participants held out from training, usable for honest demo predictions")
-def demo_trials(model_service: ModelServiceDep) -> DemoTrialsOut:
+            summary="Authorized DEAP participants readable on this server, their trials, and each one's role for the active model")
+def demo_trials(model_service: ModelServiceDep, dataset: DatasetDep, settings: SettingsDep,
+                request: Request) -> DemoTrialsOut:
+    """Which input data can be analysed (authorized, never frozen, readable) is independent of the active model's
+    evaluation split. Each participant's role for that model comes only from its recorded provenance."""
     meta = model_service.metadata
+    provenance = training_provenance(meta)
+    authorized = [p for p in settings.development_participants if not is_frozen(p)]
+    try:
+        files = {f["participant_id"]: f for f in _dataset_summary(dataset, request)["files"]}
+        dataset_available = True
+    except DatasetError as exc:
+        logger.warning("Dataset unavailable for demo trials", extra={"error": str(exc)})
+        files, dataset_available = {}, False
+
+    def role(pid: str) -> str:
+        if not provenance or not provenance["recorded"]:
+            return "unknown"
+        if pid in provenance["selection_participants"]:
+            return "selection"
+        if pid in provenance["fit_participants"]:
+            return "fit"
+        if pid in provenance["held_out_participants"]:
+            return "held_out"
+        return "not_used"
+
+    participants, unavailable = [], []
+    for pid in authorized:
+        f = files.get(pid)
+        if f and f["ok"] and f["trials"]:
+            participants.append(DemoParticipant(participant_id=pid, trial_indices=list(range(f["trials"])), model_role=role(pid)))
+        elif dataset_available:
+            unavailable.append(DemoUnavailable(participant_id=pid, reason="file not found or not readable on this server"))
+    trial_counts = {len(p.trial_indices) for p in participants}
+    if not dataset_available:
+        note = "The DEAP dataset is not available on this server."
+    elif not participants:
+        note = "No authorized participant file is readable on this server."
+    else:
+        note = ("Authorized participants readable on this server. Each one's role for the active model comes from the "
+                "model's recorded metadata; a participant used in training gives an in-sample demonstration only.")
     return DemoTrialsOut(
         model_version=meta["version"] if meta else None,
-        held_out_participants=meta["split"]["test"] if meta else [],
-        trials_per_participant=40,
-        note="These participants were never seen during training or model selection.",
+        held_out_participants=[p.participant_id for p in participants if p.model_role == "held_out"],
+        trials_per_participant=trial_counts.pop() if len(trial_counts) == 1 else None,
+        participants=participants,
+        unavailable=unavailable,
+        dataset_available=dataset_available,
+        provenance=provenance,
+        note=note,
     )

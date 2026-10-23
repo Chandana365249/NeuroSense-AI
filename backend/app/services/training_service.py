@@ -10,7 +10,7 @@ from app.core.logging import get_logger
 from app.database.session import Database
 from app.ml.dataset import DatasetError
 from app.ml.factory import make_dataset
-from app.ml.training import BaselineTrainer
+from app.ml.protocol_training import ProtocolTrainer
 from app.repositories import AuditRepository, ReportRepository
 from app.services.model_service import ModelService
 
@@ -70,7 +70,9 @@ class TrainingService:
         try:
             # The new version is saved as an inactive candidate: training never changes the active model pointer,
             # the model in memory or the database active flag. Activation is a separate administrator action.
-            trainer = BaselineTrainer(self.settings, run_cross_validation=run_cross_validation, activate=False)
+            # Protocol-aware (Evaluation Protocol v1.1): development participants only, fixed algorithm,
+            # exploratory leave-one-participant-out evaluation.
+            trainer = ProtocolTrainer(self.settings, run_cross_validation=run_cross_validation, activate=False)
             result = trainer.run(progress=lambda stage, frac: self._update(stage=stage, progress=round(frac, 3)))
             with self.db.session() as session:
                 meta = result.metadata
@@ -78,8 +80,9 @@ class TrainingService:
                 ReportRepository(session).create(
                     "training",
                     f"Training report {result.version}",
-                    {k: meta[k] for k in ("version", "algorithm", "label", "split", "dataset", "validation", "test",
-                                          "test_reference_majority", "cross_validation", "training_seconds", "disclaimer")},
+                    {k: meta.get(k) for k in ("version", "algorithm", "label", "split", "dataset", "validation", "test",
+                                              "test_reference_majority", "cross_validation", "protocol", "evaluation",
+                                              "training_seconds", "disclaimer")},
                     user_id,
                     record.id,
                 )

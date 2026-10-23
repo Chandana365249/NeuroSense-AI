@@ -29,7 +29,7 @@ def list_predictions(user: CurrentUser, db: DbSession, limit: Limit = 50, offset
                      session_id: int | None = None) -> PredictionListOut:
     repo = PredictionRepository(db)
     items = repo.list_for_user(user.id, limit, offset, session_id)
-    return PredictionListOut(total=repo.count_for_user(user.id), items=[to_prediction_out(p) for p in items])
+    return PredictionListOut(total=repo.count_for_user(user.id, session_id), items=[to_prediction_out(p) for p in items])
 
 
 @router.get("/predictions/{prediction_id}", response_model=PredictionOut, tags=["history"])

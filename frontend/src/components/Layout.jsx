@@ -18,6 +18,13 @@ export default function Layout({ route, auth, children }) {
     window.scrollTo(0, 0);
   }, [route.path]);
 
+  // The shell mounts when a session is verified (for example right after signing in, which removes the sign-in form):
+  // if focus was lost with the old screen, put it on the page heading.
+  useEffect(() => {
+    const active = document.activeElement;
+    if (!active || active === document.body) (document.getElementById('page-title') || mainRef.current)?.focus();
+  }, []);
+
   // Signing in or out replaces the focused form or button; put focus back on the page heading.
   const userId = auth.user?.id ?? null;
   const lastUser = useRef(userId);

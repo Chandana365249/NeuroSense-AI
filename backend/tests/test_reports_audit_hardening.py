@@ -128,7 +128,7 @@ def test_training_failure_audit_entry_has_no_exception_text(client: TestClient, 
             progress("Fitting random_forest on training participants", 0.4)
             raise OSError(f"[Errno 2] No such file or directory: '{secret_path}' (user=neurosense password=hunter2)")
 
-    monkeypatch.setattr(training_module, "BaselineTrainer", FailingTrainer)
+    monkeypatch.setattr(training_module, "ProtocolTrainer", FailingTrainer)
     # An entry written by the previous code; it must stay exactly as it is.
     with client.app.state.db.session() as session:  # type: ignore[attr-defined]
         AuditRepository(session).add("training.failed", None, "model", None, {"error": "OSError: legacy detail C:\\legacy\\path"})

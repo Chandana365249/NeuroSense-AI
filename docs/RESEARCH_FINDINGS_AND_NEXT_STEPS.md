@@ -2,10 +2,13 @@
 
 **Status:** all findings below are **exploratory (12 participants, Protocol v1.1)**.
 
-- There are no final-test results. The frozen final test group has never been used.
+- There are no final-test results. The frozen final test group has never been used. Its evaluation is **BLOCKED** until Decision I is resolved.
 - Under Decision C, nothing here supports a formal claim that any model outperforms the Random Forest, or any claim about people outside this sample.
-- Compiled on 2026-10-13 from the reports and saved result files listed in §13.
-- No new experiment was run for this document.
+- Compiled on 2026-10-13 from the reports and saved result files listed in §13. **Updated 2026-10-23** with:
+  - the model-improvement experiments (§9a);
+  - the covariance-alignment experiment (§9b);
+  - a note on why headline numbers from different protocols cannot be compared (§9c).
+- **Model experimentation on the current 12 participants is frozen** (2026-10-23). No further model, feature or tuning experiments will be run on them; the next step is data (§11).
 
 > **What this project measures.** NeuroSense AI estimates a binary category of **self-reported valence**. That is a person's own rating of how pleasant a music video felt, given once after each 60 s trial. It does not detect emotions, measure a person's exact emotional experience, or provide any diagnosis.
 
@@ -253,6 +256,61 @@ These are **pre-protocol** results (before Protocol v1.0).
 - 12 participants;
 - the learning curve has no tests.
 
+## 9a. Model-improvement experiments (`MODEL_IMPROVEMENT_EXPERIMENTS.md`, 2026-10-22)
+
+**Design:**
+- **Protocols:** nested leave-one-participant-out, participant-independent; within-person video folds; population plus personal calibration.
+- **Candidates (selected only inside training folds):** RF, XGBoost, logistic regression ×3, RBF SVM ×2, each with 4 trial-aggregation rules.
+- **Also tested:** feature-family and region ablations, continuous-valence regression, borderline exclusion (S1), and a training-set-size curve.
+- **Seeds:** 42–44.
+
+| Finding | Value |
+|---|---|
+| Participant-independent, inductive (nested selection over 28 options) | 0.541 [0.504, 0.579]; RF 0.533. Δ +0.008 [−0.024, +0.039], Holm p = 0.93 |
+| Model choice | RF, LR, SVM within ±0.02 of each other; XGBoost slightly worse. **Not the bottleneck.** |
+| Aggregation, ablations, regression | No improvement; regression worse in every setting |
+| Supervised personalization (32 videos), nested | 0.620 [0.559, 0.681]; RF 0.618 (identical to §9) |
+| Calibration size, RF (personal-only / pooled) | 8 videos: 0.562 / 0.576; 16: 0.601 / 0.594; 32: 0.618 / 0.601. Zero-shot on new videos: 0.535. |
+| Ratings close to 5 | Accuracy 0.589 on borderline vs 0.646 on clear trials (r = 0.074); a modest contributor |
+| Leakage demonstration (random **segment** split, invalid) | 0.805, which shows how inflated DEAP figures arise |
+
+**Conclusions:**
+- **No model reached 90%** under any valid protocol; the highest upper CI bound was 0.71.
+- **No candidate was activated.** An isolated, unregistered candidate (logistic regression; nested estimate 0.541) exists only for reproducibility.
+
+## 9b. Per-person covariance alignment (`COVARIANCE_ALIGNMENT_EXPERIMENT.md`, 2026-10-23)
+
+**Design:**
+- **Features:** 4-band 32×32 covariance tangent-space features, 2,112 per segment.
+- **Alignment:** each person re-centred on their own **unlabelled** EEG from non-test videos (unsupervised calibration).
+- **Folds:** leave one participant **and** 8 videos out, seeds 42–44. These are identical folds for all conditions.
+
+| Condition | Trial balanced accuracy [95% CI] |
+|---|---|
+| A0 baseline, 440 features (inductive) | 0.493 [0.470, 0.516] |
+| A1 baseline + per-person z-score | 0.535 [0.492, 0.578] |
+| A2 covariance, no alignment | 0.506 [0.471, 0.541] |
+| **A3 covariance, per-person alignment** | **0.499 [0.458, 0.539]** |
+| Within-person: 440 features / aligned covariance | 0.618 / 0.607 |
+
+**Result: negative.**
+- **Primary comparison (A3 − A0):** +0.006 [−0.025, +0.038], Holm p = 1.0.
+- **Simpler normalization was better:** A3 was below simple z-scoring (A1) by 0.036 [−0.070, −0.003].
+- **What alignment did:** it removed the between-person offset (18.1 → 0.6) and single-label collapse (3 → 0 people), but did not improve discrimination (within-person AUC 0.53).
+- **Recommendation:** not to be pursued further on 12 participants.
+
+## 9c. Why the headline numbers are not interchangeable
+
+| Number | Metric | Who is tested | Training data | Why it differs |
+|---|---|---|---|---|
+| **59.2%** (active model, Review 3) | Trial **accuracy**, **pooled** over 120 trials | 3 fixed people (s01, s09, s11), one split, one seed | 9 fixed people, **all 40 videos**, including the same videos later tested | Not balanced for class mix; driven by s09 (0.75), while s01 got one label for every trial (0.50). The participant-level CI is [0.31, 0.93] (n = 3). These participants have since been examined repeatedly, so the result is historical, not an independent test. |
+| **53.3%** (model-improvement P1, RF) | Trial **balanced accuracy**, mean of 12 people | Every person once (leave-one-participant-out), 3 seeds | Other 11 people, **all 40 videos** (the test videos' stimuli are in training) | Covers all 12 people, not 3 favourable ones |
+| **49.3%** (covariance experiment A0) | Trial **balanced accuracy**, mean of 12 people | Every person × 5 video folds, 3 seeds | Other 11 people, **only the 32 non-test videos** | Strictest design: neither the person nor the video has been seen, so any stimulus-recognition advantage is removed |
+
+**What follows:**
+- **None of these is a better or worse "version" of the same model.** They answer different questions with different metrics. They must never be placed in one table as if comparable, or used to suggest that a model got worse or better.
+- **The consistent message:** for a new person, every valid participant-level estimate is close to 0.5.
+
 ## 10. Scientific interpretation
 
 **Supported by the evidence (this sample, this pipeline, Random Forest):**
@@ -260,6 +318,9 @@ These are **pre-protocol** results (before Protocol v1.0).
 2. **Collapse comes from per-person offsets.** Cross-person failures show strong per-person prediction collapse. Unsupervised per-person normalization removes the collapse but does not demonstrably improve discrimination.
 3. **Supervised calibration works.** A model trained on about 32 of a person's own rated videos predicts that person's binary ratings on **new videos** above chance (about 0.62 balanced accuracy, versus 0.50 zero-shot on the same trials). This was replicated across three fold schemes.
 4. **The calibrated signal is shared.** It predicts the **other participants' consensus** for each video as well as the person's own rating. Where the person disagrees with the consensus, the model does not follow them.
+5. **The bottleneck is not the model or the representation** (§9a, §9b).
+   - **What didn't help:** four model families with nested selection, four aggregation rules, 14 feature subsets, regression, and per-person covariance alignment.
+   - **What that means:** none changed the near-chance cross-person result. With 12 participants, model selection itself is unreliable.
 
 **Hypotheses (not established):**
 - **H1.** The within-person signal reflects EEG responses shared across people and related to the stimulus. These could be shared affect, low-level audiovisual properties, or both, and the current data cannot separate them.
@@ -284,6 +345,13 @@ These are **pre-protocol** results (before Protocol v1.0).
 1. **Prioritize B (resolve Decision I and obtain the official DEAP release).** It is the only route to the independent evidence that every further claim depends on.
 2. **In parallel, a scoped version of C** is reasonable: honest presentation of the existing results and the calibration framing, with no new models and no performance claims.
 3. **Keep A as the working hypothesis.** Re-test it on the full development set before building product features around it.
+4. **Model experimentation is frozen on the current 12 participants** (2026-10-23; §9a–§9b).
+   - **What is kept:** the active Random Forest.
+   - **What is not done:** no experimental candidate is registered or activated.
+   - **When work resumes:** only after B, as a pre-declared comparison against the stronger references found here:
+     - per-person z-scoring for new users (0.535 on new videos);
+     - the personal Random Forest for calibrated users (0.618).
+   - **How personalized calibration is described:** exploratory, at about 0.6 balanced accuracy, and never as emotion detection or a clinical tool.
 
 ## 12. Decision criteria before new models or product-performance claims
 
@@ -322,6 +390,8 @@ Then **one** evaluation on the frozen test group, reported as is.
 | Cross-participant leave-video-out | `docs/EXPLORATORY_CROSS_PARTICIPANT_LEAVE_VIDEO_OUT.md` | `docs/results/exploratory/cross_participant_lvo_rf/` |
 | Unsupervised normalization | `docs/EXPLORATORY_PARTICIPANT_NORMALIZATION.md` | `docs/results/exploratory/participant_normalization_rf/` |
 | Supervised calibration | `docs/EXPLORATORY_WITHIN_PERSON_CALIBRATION.md` | `docs/results/exploratory/within_person_calibration_rf/` |
+| Model-improvement experiments (added 2026-10-22) | `docs/MODEL_IMPROVEMENT_EXPERIMENTS.md` | `docs/results/exploratory/model_improvement/` (script `backend/scripts/model_improvement.py`) |
+| Covariance alignment (added 2026-10-23) | `docs/COVARIANCE_ALIGNMENT_EXPERIMENT.md` | `docs/results/exploratory/covariance_alignment/` (script `backend/scripts/covariance_alignment.py`) |
 
 **Inconsistencies identified while compiling (not reconciled, only explained):**
 1. **XGBoost trial macro-F1:** 0.515 vs 0.514 between two documents; this is rounding of the saved 0.5145.

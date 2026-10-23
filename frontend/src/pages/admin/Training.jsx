@@ -24,7 +24,8 @@ function Outcome({ t }) {
     return (
       <Notice tone="info" title="Candidate registered (inactive)" announce={false}>
         <span className="mono">{t.model_version}</span> was saved as an inactive candidate. The active model has not
-        changed. Its metrics are historical and pre-protocol, so a higher score is not evidence that it is better.
+        changed. Its evaluation is exploratory (leave-one-participant-out on the development participants), not an
+        independent test, so a higher score is not evidence that it is better.
         Review it in the <a href={href('/models')}>Model registry</a>; activation is a separate administrator step.
       </Notice>
     );
@@ -117,14 +118,15 @@ function TrainingPanel({ auth }) {
     <div className="grid-2 training-grid">
       <Card title="Train a candidate model" titleId="train-candidate">
         <p>
-          Trains the baseline pipeline on the server&apos;s DEAP data and saves the result as an <strong>inactive
-          candidate</strong>. It does not replace the active model and is never activated automatically. Activating a
-          model is a separate, audited administrator action in the <a href={href('/models')}>Model registry</a>.
+          Trains a Random Forest under Evaluation Protocol v1.1 on the development participants only (the frozen
+          final-test group is never loaded) and saves the result as an <strong>inactive candidate</strong>. It does not
+          replace the active model and is never activated automatically. Activating a model is a separate, audited
+          administrator action in the <a href={href('/models')}>Model registry</a>.
         </p>
         <div className="form-section">
           <label className="check" htmlFor="train-cv">
             <input id="train-cv" type="checkbox" checked={runCv} onChange={(e) => setRunCv(e.target.checked)} disabled={blocked} />
-            Run leave-one-participant-out cross-validation (slower)
+            Run the exploratory leave-one-participant-out evaluation (slower)
           </label>
           <button type="button" className="btn btn-primary" onClick={start} aria-disabled={blocked || undefined}
             aria-describedby="train-note">

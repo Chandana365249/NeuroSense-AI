@@ -7,7 +7,8 @@ import LoadingBlock from '../components/LoadingBlock';
 import Notice from '../components/Notice';
 import PageHeader from '../components/PageHeader';
 import StatusPill from '../components/StatusPill';
-import { algorithmLabel, NA, num, pct, when } from '../components/format';
+import { algorithmLabel, evaluationSummary, NA, num, pct, when } from '../components/format';
+import { evaluationStatus, modelStatusLabel, trainingDataSummary } from '../modelInfo';
 import { href } from '../router';
 
 const FRAMEWORK_LABELS = { sklearn: 'scikit-learn', pytorch: 'PyTorch', torch: 'PyTorch' };
@@ -55,10 +56,15 @@ function RegistryTable({ state, load, canActivate, onActivate }) {
           <tbody>
             {models.map((m) => (
               <tr key={m.version} className={m.is_active ? 'row-active' : undefined}>
-                <td className="nowrap">{m.is_active ? <StatusPill tone="ok">Active</StatusPill> : <StatusPill>Inactive</StatusPill>}</td>
+                <td className="nowrap">
+                  <StatusPill tone={m.is_active ? 'ok' : modelStatusLabel(m).startsWith('Candidate') ? 'warn' : undefined}>{modelStatusLabel(m)}</StatusPill>
+                </td>
                 <td className="model-cell">
                   {algorithmLabel(m.model_type || m.algorithm)}
                   <span className="cell-sub">{FRAMEWORK_LABELS[m.framework] || m.framework || NA}{m.feature_count ? ` · ${m.feature_count} features` : ''}</span>
+                  <span className="cell-sub">Trained on: {trainingDataSummary(m.provenance)}</span>
+                  <span className="cell-sub">Evaluation: {evaluationStatus(m).label}</span>
+                  {evaluationSummary(m.evaluation) ? <span className="cell-sub">{evaluationSummary(m.evaluation)}</span> : null}
                 </td>
                 <td className="mono small ident version-cell"><Breakable text={m.version} /></td>
                 <td className="trained-cell">{when(m.trained_at)}</td>
@@ -80,8 +86,10 @@ function RegistryTable({ state, load, canActivate, onActivate }) {
       </div>
       <p className="meta small">
         Historical columns: segment-level results on each model&apos;s own pre-protocol held-out split, recorded when it
-        was trained. Inactive models include newly trained candidates. “{NA}” means the registry holds no such record for
-        that model.
+        was trained. Protocol candidates have no such split; their exploratory leave-one-participant-out summary is shown
+        under the model name instead. “Candidate (inactive)” marks a model trained under the current protocol that has
+        not been activated; it is never used for analyses until an administrator activates it. “{NA}” means the registry
+        holds no such record for that model.
       </p>
     </>
   );

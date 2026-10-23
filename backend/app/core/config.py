@@ -7,6 +7,8 @@ from typing import Literal
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.ml.participants import FROZEN_TEST_PARTICIPANTS, TRUSTED_DEVELOPMENT_PARTICIPANTS
+
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 PROJECT_ROOT = BACKEND_DIR.parent
 
@@ -54,9 +56,21 @@ class Settings(BaseSettings):
     valence_threshold: float = 5.0
     arousal_threshold: float = 5.0
 
-    # Participant-aware split
+    # Participant-aware split (historical, pre-protocol baseline trainer only)
     test_participants: int = 3
     validation_participants: int = 2
+
+    # Evaluation Protocol v1.1: development participants used by protocol-aware candidate training.
+    # Defaults to the 12 trusted participants; the frozen final-test group can never be added here.
+    development_participants: list[str] = Field(default_factory=lambda: list(TRUSTED_DEVELOPMENT_PARTICIPANTS))
+
+    @field_validator("development_participants")
+    @classmethod
+    def _no_frozen(cls, value: list[str]) -> list[str]:
+        frozen = sorted(p for p in value if p.lower() in FROZEN_TEST_PARTICIPANTS)
+        if frozen:
+            raise ValueError("development_participants must not include frozen final-test participants")
+        return sorted(set(value))
 
     @field_validator("dataset_dir", "output_dir")
     @classmethod

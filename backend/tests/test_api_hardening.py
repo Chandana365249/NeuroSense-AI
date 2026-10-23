@@ -111,7 +111,8 @@ def test_public_dataset_summary_is_aggregate_only(client: TestClient, fake_deap_
     assert r.status_code == 200
     body = r.json()
     assert set(body) == {"sampling_rate_hz", "baseline_seconds", "participants_found", "participants_valid", "total_trials",
-                         "eeg_channels_used", "eeg_channel_names", "participants"}
+                         "eeg_channels_used", "eeg_channel_names", "participants", "authorized_participants"}
+    assert body["authorized_participants"] == client.app.state.settings.development_participants
     assert body["participants_found"] == body["participants_valid"] == len(PARTICIPANTS)
     assert [p["participant_id"] for p in body["participants"]] == PARTICIPANTS
     assert all(set(p) == {"participant_id", "readable", "trials", "channels", "samples"} for p in body["participants"])
@@ -236,7 +237,7 @@ def test_metrics_without_model_has_no_paths(client: TestClient, fake_deap_dir: P
     r = client.get("/api/metrics")
     assert r.json() == {"available": False, "message": "No trained model available. Train a model first.", "model_version": None,
                         "label": None, "split": None, "validation": None, "test": None, "test_reference_majority": None,
-                        "cross_validation": None, "dataset": None, "graphs": []}
+                        "cross_validation": None, "evaluation": None, "protocol": None, "dataset": None, "graphs": []}
 
 
 # ---------- 5. /training/status: administrators only, generic failures ----------
@@ -279,7 +280,7 @@ def test_failed_training_is_polled_and_reported_generically(client: TestClient, 
         def error(self, msg: str, *args, exc_info=None, **kwargs) -> None:  # noqa: ANN001, ANN002, ANN003
             logged.append((msg, exc_info))
 
-    monkeypatch.setattr(training_module, "BaselineTrainer", FailingTrainer)
+    monkeypatch.setattr(training_module, "ProtocolTrainer", FailingTrainer)
     monkeypatch.setattr(training_module, "logger", RecordingLogger())
     admin, user = admin_and_user(client)
     assert client.post("/api/train", json={"run_cross_validation": False}, headers=admin).status_code == 202

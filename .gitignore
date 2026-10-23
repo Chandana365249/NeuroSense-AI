@@ -24,3 +24,6 @@ outputs/graphs/*
 outputs/metrics/*
 !outputs/metrics/dataset_summary.json
 outputs/experiments/*
+
+# Local run state written by scripts/start.ps1 (PIDs, logs)
+.run/

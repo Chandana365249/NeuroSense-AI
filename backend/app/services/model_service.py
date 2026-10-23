@@ -331,9 +331,22 @@ def _sync_metadata(db: Session, meta: dict[str, Any], active: bool) -> MLModel:
     record = repo.upsert_from_metadata(meta)
     if active:
         repo.set_active(record)
+    MetricRepository(db).replace_for_model(record.id, metric_rows(meta))
+    return record
+
+
+# Protocol LOPO summary rows (aggregate name in metadata -> stored metric name).
+_PROTOCOL_ROWS = (("trial_balanced_accuracy", "balanced_accuracy"), ("trial_f1_macro", "f1_macro"),
+                  ("within_person_auc", "within_person_auc"), ("majority_trial_balanced_accuracy", "majority_balanced_accuracy"))
+
+
+def metric_rows(meta: dict[str, Any]) -> list[tuple[str, str, str, float | None]]:
+    """The metric rows stored for a model. Historical fixed-split models keep exactly the rows they always had;
+    protocol candidates (no validation/test split) store their exploratory LOPO summary as split 'lopo_protocol'."""
     rows: list[tuple[str, str, str, float | None]] = []
-    chosen_val = meta["validation"][meta["algorithm"]]
-    for split, block in (("validation", chosen_val), ("test", meta["test"]), ("test_reference", meta["test_reference_majority"])):
+    chosen_val = (meta.get("validation") or {}).get(meta["algorithm"]) or {}
+    for split, block in (("validation", chosen_val), ("test", meta.get("test") or {}),
+                         ("test_reference", meta.get("test_reference_majority") or {})):
         for level in ("segment", "trial"):
             if not block.get(level):
                 continue
@@ -343,5 +356,12 @@ def _sync_metadata(db: Session, meta: dict[str, Any], active: bool) -> MLModel:
     if cv:
         for name in ("segment_accuracy_mean", "segment_accuracy_std", "segment_f1_macro_mean", "segment_f1_macro_std"):
             rows.append(("cross_validation", "segment", name, cv[name]))
-    MetricRepository(db).replace_for_model(record.id, rows)
-    return record
+    evaluation = meta.get("evaluation") or {}
+    if evaluation.get("kind") == "lopo_exploratory":
+        for key, name in _PROTOCOL_ROWS:
+            stats = evaluation["aggregate"].get(key) or {}
+            rows.append(("lopo_protocol", "trial", f"{name}_mean", stats.get("mean")))
+            rows.append(("lopo_protocol", "trial", f"{name}_sd", stats.get("sd_sample")))
+        rows.append(("lopo_protocol", "trial", "single_label_participants",
+                     float(evaluation["diagnostics"]["single_label_participants"])))
+    return rows

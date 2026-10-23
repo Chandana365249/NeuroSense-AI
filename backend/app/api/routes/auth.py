@@ -13,7 +13,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED,
-             summary="Create an account (the first account becomes administrator)")
+             summary="Create a standard (non-administrator) account. Administrators are created only by the local bootstrap command")
 def register(payload: RegisterRequest, db: DbSession, settings: SettingsDep, ip: ClientIP) -> UserOut:
     user = AuthService(db, settings).register(payload.email, payload.password, payload.full_name, ip)
     return UserOut.model_validate(user)

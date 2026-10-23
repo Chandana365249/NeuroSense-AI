@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import { api } from '../api';
+import { authFailureMessage, localErrors } from '../authRules';
 
 const FIELD_ORDER = ['full_name', 'email', 'password'];
 
@@ -29,9 +30,12 @@ function fieldErrorsFrom(err) {
   return result;
 }
 
-/** Sign-in / registration form. Registration then signs in, as before. */
-export default function AuthForm({ onAuth }) {
-  const [mode, setMode] = useState('login');
+/**
+ * Sign-in / registration form. Registration then signs in, as before. `onModeChange` lets a surrounding page follow
+ * the mode (for its heading); `initialMode` is 'login' or 'register'.
+ */
+export default function AuthForm({ onAuth, onModeChange, initialMode = 'login' }) {
+  const [mode, setMode] = useState(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -41,30 +45,35 @@ export default function AuthForm({ onAuth }) {
   const id = useId();
   const inputs = { full_name: useRef(null), email: useRef(null), password: useRef(null) };
 
-  const switchMode = (next) => { setMode(next); setError(null); setFieldErrors({}); };
+  const switchMode = (next) => {
+    setMode(next); setError(null); setFieldErrors({});
+    onModeChange?.(next);
+    setTimeout(() => inputs[next === 'register' ? 'full_name' : 'email'].current?.focus(), 0);
+  };
+
+  const showFieldErrors = (fields) => {
+    const first = FIELD_ORDER.find((f) => fields[f]);
+    setFieldErrors(fields);
+    setError(Object.keys(fields).length > 1 ? 'Please correct the highlighted fields.' : 'Please correct the highlighted field.');
+    setTimeout(() => inputs[first].current?.focus(), 0);
+  };
 
   const submit = async (event) => {
     event.preventDefault();
     if (busy) return;
+    const local = localErrors(mode, email, password);
+    if (Object.keys(local).length) { showFieldErrors(local); return; }
     setBusy(true);
     setError(null);
     setFieldErrors({});
     try {
-      if (mode === 'register') await api.register(email, password, fullName);
-      const { access_token: token } = await api.login(email, password);
+      if (mode === 'register') await api.register(email.trim(), password, fullName);
+      const { access_token: token } = await api.login(email.trim(), password);
       onAuth(token);
     } catch (err) {
       const fields = err.status === 422 ? fieldErrorsFrom(err) : {};
-      const first = FIELD_ORDER.find((f) => fields[f]);
-      if (first) {
-        setFieldErrors(fields);
-        setError(Object.keys(fields).length > 1 ? 'Please correct the highlighted fields.' : 'Please correct the highlighted field.');
-        setTimeout(() => inputs[first].current?.focus(), 0);
-      } else {
-        setError(err.status === 0 ? 'The service is unreachable. Please try again shortly.'
-          : err.status === 422 ? 'Some details could not be accepted. Please check the form and try again.'
-            : err.message);
-      }
+      if (FIELD_ORDER.some((f) => fields[f])) showFieldErrors(fields);
+      else setError(authFailureMessage(err, mode));
     } finally {
       setBusy(false);
     }
@@ -78,16 +87,11 @@ export default function AuthForm({ onAuth }) {
   };
   const fieldError = (field) => (fieldErrors[field]
     ? <span id={`${id}-${field}-error`} className="form-error field-error">{fieldErrors[field]}</span> : null);
+  const login = mode === 'login';
 
   return (
-    <form className="auth-form" onSubmit={submit} noValidate={false}>
-      <div className="segmented" role="group" aria-label="Account action">
-        <button type="button" aria-pressed={mode === 'login'} className={mode === 'login' ? 'seg-active' : ''}
-          onClick={() => switchMode('login')}>Sign in</button>
-        <button type="button" aria-pressed={mode === 'register'} className={mode === 'register' ? 'seg-active' : ''}
-          onClick={() => switchMode('register')}>Create account</button>
-      </div>
-      {mode === 'register' ? (
+    <form className="auth-form" onSubmit={submit} noValidate aria-label={login ? 'Sign in' : 'Create account'}>
+      {!login ? (
         <div className="field">
           <label htmlFor={`${id}-name`}>Full name <span className="optional">(optional)</span></label>
           <input id={`${id}-name`} autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)}
@@ -97,22 +101,28 @@ export default function AuthForm({ onAuth }) {
       ) : null}
       <div className="field">
         <label htmlFor={`${id}-email`}>Email</label>
-        <input id={`${id}-email`} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-          {...fieldProps('email')} />
+        <input id={`${id}-email`} type="email" autoComplete="email" inputMode="email" value={email}
+          onChange={(e) => setEmail(e.target.value)} required {...fieldProps('email')} />
         {fieldError('email')}
       </div>
       <div className="field">
         <label htmlFor={`${id}-password`}>Password</label>
-        <input id={`${id}-password`} type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+        <input id={`${id}-password`} type="password" autoComplete={login ? 'current-password' : 'new-password'}
           value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} maxLength={72} required
-          {...fieldProps('password', `${id}-password-hint`)} />
-        <span id={`${id}-password-hint`} className="field-hint">8–72 characters</span>
+          {...fieldProps('password', login ? undefined : `${id}-password-hint`)} />
+        {!login ? <span id={`${id}-password-hint`} className="field-hint">8–72 characters</span> : null}
         {fieldError('password')}
       </div>
-      <button type="submit" className="btn btn-primary" aria-disabled={busy || undefined}>
-        {busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
+      <div aria-live="assertive">{error ? <p className="form-error auth-error" role="alert">{error}</p> : null}</div>
+      <button type="submit" className="btn btn-primary btn-block" disabled={busy} aria-busy={busy || undefined}>
+        {busy ? (login ? 'Signing in…' : 'Creating account…') : login ? 'Sign in' : 'Create account'}
       </button>
-      <div aria-live="assertive">{error ? <p className="form-error">{error}</p> : null}</div>
+      <p className="auth-switch">
+        {login ? 'New to NeuroSense AI?' : 'Already have an account?'}{' '}
+        <button type="button" className="link-button" onClick={() => switchMode(login ? 'register' : 'login')} disabled={busy}>
+          {login ? 'Create an account' : 'Sign in'}
+        </button>
+      </p>
     </form>
   );
 }

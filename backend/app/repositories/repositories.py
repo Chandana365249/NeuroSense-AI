@@ -23,6 +23,13 @@ class UserRepository:
     def count(self) -> int:
         return int(self.db.scalar(select(func.count(User.id))) or 0)
 
+    def admin_count(self) -> int:
+        return int(self.db.scalar(select(func.count(User.id)).where(User.is_admin.is_(True))) or 0)
+
+    def set_password(self, user: User, hashed_password: str) -> None:
+        user.hashed_password = hashed_password
+        self.db.flush()
+
     def create(self, email: str, hashed_password: str, full_name: str | None, is_admin: bool) -> User:
         user = User(email=email.lower(), hashed_password=hashed_password, full_name=full_name, is_admin=is_admin)
         self.db.add(user)
@@ -158,8 +165,11 @@ class PredictionRepository:
         stmt = stmt.order_by(Prediction.created_at.desc(), Prediction.id.desc()).limit(limit).offset(offset)
         return list(self.db.scalars(stmt))
 
-    def count_for_user(self, user_id: int) -> int:
-        return int(self.db.scalar(select(func.count(Prediction.id)).where(Prediction.user_id == user_id)) or 0)
+    def count_for_user(self, user_id: int, session_id: int | None = None) -> int:
+        stmt = select(func.count(Prediction.id)).where(Prediction.user_id == user_id)
+        if session_id is not None:
+            stmt = stmt.where(Prediction.session_id == session_id)
+        return int(self.db.scalar(stmt) or 0)
 
 
 class ReportRepository:

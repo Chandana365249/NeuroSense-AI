@@ -1,17 +1,21 @@
+import { useEffect, useState } from 'react';
 import { href } from '../router';
 
-const WORKSPACE = [
+// Primary workflow: what most users need.
+const PRIMARY = [
   { path: '/overview', label: 'Overview' },
   { path: '/analyze', label: 'Analyze EEG' },
   { path: '/history', label: 'History' },
+];
+
+// Secondary research tools: read-only evidence and reference pages.
+const RESEARCH = [
   { path: '/model', label: 'Model & Evidence' },
-];
-
-const REFERENCE = [
-  { path: '/models', label: 'Model registry' },
   { path: '/dataset', label: 'Dataset' },
+  { path: '/models', label: 'Model registry' },
 ];
 
+// Shown to administrators only (a convenience; the server authorizes every request itself).
 const ADMIN = [
   { path: '/admin/training', label: 'Training' },
   { path: '/system', label: 'System health' },
@@ -34,6 +38,21 @@ function NavList({ items, current }) {
   );
 }
 
+/** A collapsible group; it opens automatically while one of its pages is shown. */
+function NavGroup({ id, title, items, current, admin = false }) {
+  const containsCurrent = items.some((i) => i.path === current);
+  const [open, setOpen] = useState(containsCurrent);
+  useEffect(() => { if (containsCurrent) setOpen(true); }, [containsCurrent]);
+  return (
+    <div className={`nav-section ${admin ? 'nav-section-admin' : ''}`}>
+      <button type="button" className="nav-group-toggle" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)}>
+        <span>{title}</span><span className="nav-caret" aria-hidden="true">{open ? '−' : '+'}</span>
+      </button>
+      <div id={id} hidden={!open}><NavList items={items} current={current} /></div>
+    </div>
+  );
+}
+
 export default function Sidebar({ id, open, currentPath, auth }) {
   return (
     <aside id={id} className={`sidebar ${open ? 'open' : ''}`}>
@@ -46,15 +65,10 @@ export default function Sidebar({ id, open, currentPath, auth }) {
       </div>
 
       <nav aria-label="Main">
-        <p className="nav-group" id="nav-workspace">Research workspace</p>
-        <NavList items={WORKSPACE} current={currentPath} />
-        <p className="nav-group nav-group-sep" id="nav-reference">Reference</p>
-        <NavList items={REFERENCE} current={currentPath} />
+        <NavList items={PRIMARY} current={currentPath} />
+        <NavGroup id="nav-research" title="Research tools" items={RESEARCH} current={currentPath} />
         {auth.user?.is_admin ? (
-          <>
-            <p className="nav-group nav-group-admin" id="nav-admin">Research administration</p>
-            <NavList items={ADMIN} current={currentPath} />
-          </>
+          <NavGroup id="nav-admin" title="Administration" items={ADMIN} current={currentPath} admin />
         ) : null}
       </nav>
 

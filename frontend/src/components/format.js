@@ -18,13 +18,21 @@ export const classLabel = (c) => (c ? CLASS_LABELS[c] || c : NA);
 export const algorithmLabel = (a) => (a ? ALGORITHM_LABELS[a] || a : NA);
 export const pct = (v) => (typeof v === 'number' ? `${(v * 100).toFixed(1)}%` : NA);
 export const num = (v, d = 3) => (typeof v === 'number' ? v.toFixed(d) : NA);
+/** One-line summary of a protocol candidate's exploratory evaluation, or null. */
+export function evaluationSummary(evaluation) {
+  const ba = evaluation?.aggregate?.trial_balanced_accuracy;
+  if (!evaluation || ba?.mean == null) return null;
+  return `Exploratory LOPO, Protocol v${evaluation.protocol_version}: trial balanced accuracy ${pct(ba.mean)} ± ${pct(ba.sd_sample)} `
+    + `(${evaluation.n_participants} participants)`;
+}
 export const when = (iso) => (iso ? new Date(iso).toLocaleString() : NA);
 
-export function sourceLabel(p) {
-  if (p?.input_source === 'deap_reference' && p.source_reference) {
-    return `DEAP ${p.source_reference.participant_id}, trial ${p.source_reference.trial_index}`;
-  }
-  return 'Uploaded EEG file';
+export { sourceText as sourceLabel } from '../analysis.js';
+
+/** Category as shown in lists. Synthetic test inputs are never presented as an estimate. */
+export function predictionLabel(p) {
+  if (p?.input_source === 'upload' && p.source_reference?.synthetic_test_signal) return 'Synthetic test (not an estimate)';
+  return classLabel(p?.prediction);
 }
 
 export const VALENCE_EXPLANATION =
@@ -34,3 +42,16 @@ export const VALENCE_EXPLANATION =
 export const RELIABILITY_NOTE =
   'Research prototype: cross-participant estimates were near chance in our exploratory evaluations. '
   + "Treat predictions as experimental, not as a reliable measurement of an individual's emotional experience.";
+
+// ---------- global feature importance ----------
+const BAND_NAMES = { theta: 'theta', alpha: 'alpha', beta: 'beta', gamma: 'gamma' };
+const FAMILY_NAMES = {
+  logpow: 'log band power', relpow: 'relative band power', spectral_entropy: 'spectral entropy',
+  hjorth_mobility: 'Hjorth mobility', hjorth_complexity: 'Hjorth complexity', log_variance: 'log variance',
+  asym: 'right–left asymmetry',
+};
+
+/** Plain-language description of a feature, e.g. "O2 · log band power · gamma". */
+export function featureLabel(f) {
+  return [f.channel, FAMILY_NAMES[f.family] || f.family, f.band ? BAND_NAMES[f.band] || f.band : null].filter(Boolean).join(' · ');
+}

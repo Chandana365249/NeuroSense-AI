@@ -48,6 +48,7 @@ export const api = {
   demoTrials: () => request('/dataset/demo-trials'),
   datasetSummary: () => request('/dataset/summary'),
   models: () => request('/models'),
+  explainGlobal: (top = 15) => request(`/explain/global?top=${encodeURIComponent(top)}`),
   // The confirmation and the audit reason travel only in the request body (never in the URL).
   activateModel: (token, version, { confirmVersion, reason }) =>
     request(`/models/${encodeURIComponent(version)}/activate`, {

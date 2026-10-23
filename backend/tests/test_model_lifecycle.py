@@ -142,8 +142,9 @@ def test_training_via_api_registers_an_inactive_candidate(lifecycle_client: Test
     admin, _ = admin_and_user(client)
     before = state(client)
 
-    assert client.post("/api/train", json={"run_cross_validation": False}, headers=admin).status_code == 202
-    client.app.state.training_service.wait(timeout=300)  # type: ignore[attr-defined]
+    # With the exploratory evaluation on, the candidate's protocol metrics are recorded (a run without it has none).
+    assert client.post("/api/train", json={"run_cross_validation": True}, headers=admin).status_code == 202
+    client.app.state.training_service.wait(timeout=600)  # type: ignore[attr-defined]
     status = client.get("/api/training/status", headers=admin).json()
     assert status["state"] == "succeeded", status
     new_version = status["model_version"]

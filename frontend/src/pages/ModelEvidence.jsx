@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import Breakable from '../components/Breakable';
 import Card from '../components/Card';
+import GlobalImportance from '../components/GlobalImportance';
 import LoadingBlock from '../components/LoadingBlock';
 import Notice from '../components/Notice';
 import PageHeader from '../components/PageHeader';
 import { algorithmLabel, classLabel, NA, num, pct, when } from '../components/format';
+import { heldOutSummary, NOT_RECORDED, trainingDataSummary } from '../modelInfo';
 import { FINDINGS, INTERPRETATION, SUMMARY_SOURCE } from './researchSummary';
 
 const GRAPH_CAPTIONS = [
@@ -21,25 +23,33 @@ function ActiveModel({ publicData }) {
   const info = publicData.modelInfo;
   if (publicData.status === 'loading') return <LoadingBlock label="Loading the active model…" />;
   if (publicData.status === 'error') return <Notice tone="error" title="The service is unreachable">Model details are unavailable.</Notice>;
+  if (publicData.modelInfoError) return <Notice tone="error" title="Could not load the active model">{publicData.modelInfoError}</Notice>;
   if (!info?.available) return <Notice tone="warning" title="No trained model">{info?.message || NA}</Notice>;
-  const trained = [...(info.split?.train || []), ...(info.split?.validation || [])];
+  const prov = info.provenance;
   return (
-    <dl className="kv kv-model">
-      <dt>Model</dt><dd>{algorithmLabel(info.algorithm)}</dd>
-      <dt>Description</dt><dd>{info.algorithm_description || NA}</dd>
-      <dt>Estimates</dt><dd>{(info.class_labels || []).map(classLabel).join(' or ') || NA}</dd>
-      <dt>Label rule</dt>
-      <dd>
-        {typeof info.label?.valence_threshold === 'number'
-          ? `Self-reported valence above ${info.label.valence_threshold} on the 1–9 scale is “higher”; otherwise “lower”.`
-          : info.label?.description || NA}
-      </dd>
-      <dt>Input features</dt><dd>{info.feature_schema?.count ?? NA} per 4 s EEG segment</dd>
-      <dt>Version</dt><dd className="mono ident"><Breakable text={info.version} /></dd>
-      <dt>Trained</dt><dd>{when(info.trained_at)}</dd>
-      <dt>Participants used for training</dt><dd>{trained.join(', ') || NA}</dd>
-      <dt>Participants not used for training</dt><dd>{(info.split?.test || []).join(', ') || NA}</dd>
-    </dl>
+    <>
+      <dl className="kv kv-model">
+        <dt>Model</dt><dd>{algorithmLabel(info.algorithm)}</dd>
+        <dt>Description</dt><dd>{info.algorithm_description || NA}</dd>
+        <dt>Estimates</dt><dd>{(info.class_labels || []).map(classLabel).join(' or ') || NA}</dd>
+        <dt>Label rule</dt>
+        <dd>
+          {typeof info.label?.valence_threshold === 'number'
+            ? `Self-reported valence above ${info.label.valence_threshold} on the 1–9 scale is “higher”; otherwise “lower”.`
+            : info.label?.description || NA}
+        </dd>
+        <dt>Input features</dt><dd>{info.feature_schema?.count ?? NA} per 4 s EEG segment</dd>
+        <dt>Version</dt><dd className="mono ident"><Breakable text={info.version} /></dd>
+        <dt>Trained</dt><dd>{when(info.trained_at)}</dd>
+        <dt>Training data</dt><dd>{trainingDataSummary(prov)}</dd>
+        {prov?.recorded ? <><dt>Trained on</dt><dd>{prov.fit_participants.join(', ')}</dd></> : null}
+        {prov?.selection_participants?.length ? (
+          <><dt>Used to choose the algorithm</dt><dd>{prov.selection_participants.join(', ')} (also in the training data)</dd></>
+        ) : null}
+        <dt>Not used for training</dt><dd>{heldOutSummary(prov) ?? NOT_RECORDED}</dd>
+      </dl>
+      <p className="provenance-note">{prov?.note || "This model's metadata does not record its training participants."}</p>
+    </>
   );
 }
 
@@ -61,6 +71,7 @@ function HistoricalEvaluation() {
   }
   const m = state.data;
   if (!m.available) return <Notice tone="warning" title="No evaluation results">{m.message || NA}</Notice>;
+  if (m.evaluation) return <ProtocolEvaluation evaluation={m.evaluation} protocol={m.protocol} />;
   const testIds = m.split?.test || [];
   const cv = m.cross_validation;
   const rows = [
@@ -70,8 +81,10 @@ function HistoricalEvaluation() {
   ];
   return (
     <>
+      <p className="badge-line"><span className="tag">Historical</span> <span className="tag">Participant-independent</span> <span className="tag">Pre-protocol</span></p>
       <Notice tone="info" title={`Pre-protocol results, ${testIds.length} participants`}>
-        These come from one train/test split made before the current evaluation protocol. The {testIds.length} test
+        These come from one train/test split made before the current evaluation protocol; the test participants were not
+        used for training, so the scores are participant-independent. The {testIds.length} test
         participants ({testIds.join(', ')}) are now used for development, so these numbers are historical and are not
         independent-test evidence. Chance level for this two-category task is 50% balanced accuracy.
       </Notice>
@@ -116,6 +129,52 @@ function HistoricalEvaluation() {
   );
 }
 
+/** Exploratory leave-one-participant-out results of a protocol-trained model (no fixed test split exists). */
+function ProtocolEvaluation({ evaluation, protocol }) {
+  const a = evaluation.aggregate || {};
+  const stat = (x, f = pct) => (x?.mean == null ? NA : `${f(x.mean)} ± ${f(x.sd_sample)}`);
+  return (
+    <>
+      <p className="badge-line"><span className="tag tag-teal">Exploratory</span> <span className="tag">Participant-independent</span> <span className="tag">Protocol v{evaluation.protocol_version}</span></p>
+      <Notice tone="info" title={`Exploratory results, Protocol v${evaluation.protocol_version}, ${evaluation.n_participants} participants`}>
+        Leave-one-participant-out cross-validation on the development participants: each person was predicted by a model
+        trained on everyone else. This is {evaluation.label}; it is not an independent test result. Chance level is 50%
+        balanced accuracy.
+      </Notice>
+      <dl className="kv kv-model">
+        <dt>Trial balanced accuracy</dt><dd>{stat(a.trial_balanced_accuracy)} (mean ± SD across participants)</dd>
+        <dt>Trial macro-F1</dt><dd>{stat(a.trial_f1_macro, num)}</dd>
+        <dt>Within-person AUC</dt><dd>{stat(a.within_person_auc, num)}</dd>
+        <dt>Majority reference</dt><dd>{stat(a.majority_trial_balanced_accuracy)} balanced accuracy</dd>
+        <dt>Single-label participants</dt><dd>{evaluation.diagnostics?.single_label_participants ?? NA} (predicted one category for ≥95% of their trials)</dd>
+      </dl>
+      {evaluation.folds?.length ? (
+        <div className="table-wrap">
+          <table className="table">
+            <caption className="visually-hidden">Per-participant exploratory results</caption>
+            <thead>
+              <tr>
+                <th scope="col">Held-out participant</th><th scope="col">Trial balanced accuracy</th><th scope="col">Trial macro-F1</th>
+                <th scope="col">Within-person AUC</th><th scope="col">Predicted “higher” share</th><th scope="col">Trials</th>
+              </tr>
+            </thead>
+            <tbody>
+              {evaluation.folds.map((f) => (
+                <tr key={f.held_out}>
+                  <th scope="row">{f.held_out}{f.few_trials_flag ? ' (few trials of one class)' : ''}</th>
+                  <td>{pct(f.trial?.balanced_accuracy)}</td><td>{num(f.trial?.f1_macro)}</td><td>{num(f.within_person_auc)}</td>
+                  <td>{pct(f.predicted_positive_share_trial)}</td><td>{f.n_trials}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+      {protocol?.limitations ? <p className="meta">{protocol.limitations}</p> : null}
+    </>
+  );
+}
+
 export default function ModelEvidence({ publicData }) {
   return (
     <>
@@ -149,8 +208,12 @@ export default function ModelEvidence({ publicData }) {
         </p>
       </Card>
 
-      <Card title="Historical evaluation of the active model" titleId="historical-evaluation">
+      <Card title="Evaluation of the active model" titleId="historical-evaluation">
         <HistoricalEvaluation />
+      </Card>
+
+      <Card title="Global feature importance" titleId="global-importance">
+        <GlobalImportance />
       </Card>
     </>
   );

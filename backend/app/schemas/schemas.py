@@ -11,6 +11,9 @@ MAX_SAMPLES_PER_CHANNEL = 128 * 120
 
 # ---------- auth ----------
 class RegisterRequest(BaseModel):
+    # Unknown fields (for example "is_admin" or "role") are rejected, so a signup payload cannot ask for a role.
+    model_config = ConfigDict(extra="forbid")
+
     email: EmailStr
     password: str = Field(min_length=8, max_length=72, description="8-72 characters (bcrypt limit)")
     full_name: str | None = Field(default=None, max_length=200)
@@ -74,6 +77,8 @@ class DatasetSummaryOut(BaseModel):
     eeg_channels_used: int
     eeg_channel_names: list[str]
     participants: list[ParticipantStructure]
+    authorized_participants: list[str] = Field(
+        default=[], description="Configured development participants this server may use (frozen test participants never)")
 
 
 class ModelSyncOut(BaseModel):
@@ -123,6 +128,19 @@ class ModelActivationOut(BaseModel):
 
 
 # ---------- models / metrics ----------
+class TrainingProvenance(BaseModel):
+    """Participants behind the stored estimator, from recorded metadata only (never reconstructed)."""
+    recorded: bool
+    kind: str = Field(description="fixed_split | protocol_all_development | unknown")
+    final_fit: str | None = None
+    fit_participants: list[str] = []
+    selection_participants: list[str] = []
+    held_out_participants: list[str] = []
+    fit_segments: int | None = None
+    fit_trials: int | None = None
+    note: str
+
+
 class ModelSummary(BaseModel):
     version: str
     name: str
@@ -135,6 +153,9 @@ class ModelSummary(BaseModel):
     model_type: str | None = None
     framework: str | None = None
     test_metrics: dict[str, float | None] | None = None
+    evaluation: dict[str, Any] | None = Field(
+        default=None, description="Protocol candidates only: exploratory leave-one-participant-out summary")
+    provenance: TrainingProvenance | None = None
 
 
 class ModelInfoOut(BaseModel):
@@ -156,7 +177,40 @@ class ModelInfoOut(BaseModel):
     preprocessing: dict[str, Any] | None = None
     split: dict[str, Any] | None = None
     test_metrics: dict[str, Any] | None = None
+    provenance: TrainingProvenance | None = None
     disclaimer: str | None = None
+
+
+class FeatureImportanceItem(BaseModel):
+    rank: int
+    name: str
+    importance: float
+    channel: str
+    family: str
+    band: str | None = None
+
+
+class ImportanceGroup(BaseModel):
+    group: str
+    label: str
+    importance: float
+
+
+class GlobalImportanceOut(BaseModel):
+    available: bool
+    reason: str | None = None
+    scope: Literal["global"] = "global"
+    model_version: str | None = None
+    algorithm: str | None = None
+    method: str | None = None
+    interpretation: str
+    limitations: list[str]
+    n_features: int | None = None
+    n_trees: int | None = None
+    uniform_share: float | None = None
+    top: list[FeatureImportanceItem] = Field(default_factory=list)
+    by_family: list[ImportanceGroup] = Field(default_factory=list)
+    by_band: list[ImportanceGroup] = Field(default_factory=list)
 
 
 class MetricsDatasetOut(BaseModel):
@@ -178,6 +232,9 @@ class MetricsOut(BaseModel):
     test: dict[str, Any] | None = None
     test_reference_majority: dict[str, Any] | None = None
     cross_validation: dict[str, Any] | None = None
+    evaluation: dict[str, Any] | None = Field(
+        default=None, description="Protocol-trained models: exploratory leave-one-participant-out results (per participant)")
+    protocol: dict[str, Any] | None = None
     dataset: MetricsDatasetOut | None = None
     graphs: list[str] = Field(default_factory=list)
 
@@ -203,6 +260,8 @@ class EEGInput(BaseModel):
     signal: list[list[float]] = Field(description="EEG as [channels][samples]; 32 channels in DEAP (Geneva) order, microvolts")
     sampling_rate: int = Field(default=128, description="Must match the model's sampling rate (128 Hz)")
     includes_baseline: bool = Field(default=False, description="True if the first 3 s are a pre-stimulus baseline to drop")
+    synthetic_test_signal: bool = Field(
+        default=False, description="True for generated test signals (not recorded EEG); stored so the result is labelled")
 
     @field_validator("signal")
     @classmethod
@@ -287,8 +346,24 @@ class ReportOut(BaseModel):
 
 
 # ---------- dataset ----------
+class DemoParticipant(BaseModel):
+    participant_id: str
+    trial_indices: list[int] = Field(description="Zero-based DEAP trial indices readable on this server")
+    model_role: str = Field(description="Recorded role for the active model: fit | selection | held_out | not_used | unknown")
+
+
+class DemoUnavailable(BaseModel):
+    participant_id: str
+    reason: str
+
+
 class DemoTrialsOut(BaseModel):
     model_version: str | None
-    held_out_participants: list[str]
-    trials_per_participant: int
+    held_out_participants: list[str] = Field(
+        description="Available participants recorded as held out from the active model's fit and selection")
+    trials_per_participant: int | None
+    participants: list[DemoParticipant] = []
+    unavailable: list[DemoUnavailable] = []
+    dataset_available: bool = False
+    provenance: TrainingProvenance | None = None
     note: str

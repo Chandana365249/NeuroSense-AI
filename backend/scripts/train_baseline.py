@@ -1,4 +1,9 @@
-"""Train the baseline model on real DEAP data and print held-out results.
+"""HISTORICAL (pre-protocol) baseline training: reproduces the Review 2 fixed participant split.
+
+For new candidate models use the protocol-aware trainer instead:  python -m scripts.train_candidate
+Results from this script are historical fixed-split results, not Evaluation Protocol v1.1 results.
+
+Train the baseline model on real DEAP data and print held-out results.
 
 Usage (from backend/):  python -m scripts.train_baseline [--no-cv] [--activate]
 
@@ -28,6 +33,7 @@ def main() -> None:
     parser.add_argument("--activate", action="store_true",
                         help="make the new model the active model (default: save it as an inactive candidate)")
     args = parser.parse_args()
+    print("NOTE: historical pre-protocol fixed split. For protocol-aware candidates use: python -m scripts.train_candidate\n")
     settings = get_settings()
     configure_logging("WARNING", settings.log_dir)
 

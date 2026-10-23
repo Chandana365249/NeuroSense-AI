@@ -6,7 +6,7 @@ import { CLASS_LABELS } from './format';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 const CATEGORIES = ['high_valence', 'low_valence'];
-const SOURCES = [['deap_reference', 'DEAP trials'], ['upload', 'Uploaded files']];
+const SOURCES = [['deap_reference', 'DEAP trials'], ['upload', 'Uploaded files'], ['synthetic', 'Synthetic tests']];
 const PROB_BINS = [[0.5, 0.6], [0.6, 0.7], [0.7, 0.8], [0.8, 0.9], [0.9, 1.0001]];
 const DAY_WINDOW = 30;
 
@@ -43,10 +43,12 @@ export function summarise(items) {
   const days = new Map();
   let latest = null;
   for (const p of items) {
-    const src = p.input_source === 'deap_reference' ? 'deap_reference' : 'upload';
+    const src = p.input_source === 'deap_reference' ? 'deap_reference'
+      : p.source_reference?.synthetic_test_signal ? 'synthetic' : 'upload';
     if (byCategory[src][p.prediction] !== undefined) byCategory[src][p.prediction] += 1;
-    const i = PROB_BINS.findIndex(([lo, hi]) => p.confidence >= lo && p.confidence < hi);
-    if (i >= 0) bins[i] += 1; else if (typeof p.confidence === 'number') belowHalf += 1;
+    // Synthetic tests carry no information about valence, so their scores are left out of the probability chart.
+    const i = src === 'synthetic' ? -2 : PROB_BINS.findIndex(([lo, hi]) => p.confidence >= lo && p.confidence < hi);
+    if (i >= 0) bins[i] += 1; else if (i === -1 && typeof p.confidence === 'number') belowHalf += 1;
     const d = new Date(p.created_at);
     if (!Number.isNaN(d.getTime())) {
       days.set(dayKey(d), (days.get(dayKey(d)) || 0) + 1);
@@ -117,7 +119,7 @@ export default function HistoryCharts({ items }) {
       </ChartFigure>
 
       <ChartFigure id="chart-probability" title="Model probability of the estimated category"
-        description="Model probability is the model's own output, not a measure of accuracy."
+        description="Model probability is the model's own output, not a measure of accuracy. Synthetic tests are not included."
         table={<DataTable caption="Model probability distribution" head={['Model probability', 'Analyses']}
           rows={[...binLabels.map((l, i) => [l, s.bins[i]]), ...(s.belowHalf ? [['Below 50%', s.belowHalf]] : [])]} />}>
         <Bar role="img" aria-label={`Histogram. ${binLabels.map((l, i) => `${l}: ${s.bins[i]}`).join(', ')}.`}
