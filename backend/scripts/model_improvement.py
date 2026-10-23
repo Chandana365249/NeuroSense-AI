@@ -61,7 +61,7 @@ from sklearn.preprocessing import StandardScaler  # noqa: E402
 from sklearn.svm import SVC  # noqa: E402
 
 from app.core.config import get_settings  # noqa: E402
-from app.ml.deep.robust_evaluation import git_commit  # noqa: E402
+from app.ml.provenance import git_commit  # noqa: E402
 from app.ml.models import candidate_models  # noqa: E402
 from app.ml.participants import FROZEN_TEST_PARTICIPANTS, PROTOCOL_VERSION  # noqa: E402
 from app.ml.stats import mean_ci, wilcoxon  # noqa: E402

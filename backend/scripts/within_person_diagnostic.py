@@ -32,7 +32,7 @@ import numpy as np
 from sklearn.model_selection import StratifiedKFold
 
 from app.core.config import get_settings
-from app.ml.deep.robust_evaluation import git_commit
+from app.ml.provenance import git_commit
 from app.ml.factory import make_dataset, make_feature_extractor, make_label_config, make_preprocessor
 from app.ml.feature_table import FeatureTable, build_feature_table
 from app.ml.models import candidate_models

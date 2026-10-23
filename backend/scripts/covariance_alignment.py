@@ -50,7 +50,7 @@ import numpy as np  # noqa: E402
 from scipy import signal as sps_signal  # noqa: E402
 
 from app.core.config import get_settings  # noqa: E402
-from app.ml.deep.robust_evaluation import git_commit  # noqa: E402
+from app.ml.provenance import git_commit  # noqa: E402
 from app.ml.participants import FROZEN_TEST_PARTICIPANTS, PROTOCOL_VERSION  # noqa: E402
 from scripts import cross_participant_lvo as lvo  # noqa: E402
 from scripts import model_improvement as mi  # noqa: E402

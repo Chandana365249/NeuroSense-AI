@@ -24,7 +24,6 @@ Runs are evaluation experiments: they are tracked as JSON records, not registere
 
 from __future__ import annotations
 
-import subprocess
 import tempfile
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
@@ -34,7 +33,8 @@ from typing import Any
 import numpy as np
 import torch
 
-from app.core.config import BACKEND_DIR, Settings
+from app.core.config import Settings
+from app.ml.provenance import git_commit  # noqa: F401  (re-exported; defined torch-free)
 from app.core.logging import get_logger
 from app.ml.dataset import DEAPDataset
 from app.ml.deep.classifier import CNNClassifier
@@ -110,14 +110,6 @@ def plan_runs(split: ParticipantSplit, protocols: list[str], normalizations: lis
                 inner_train = sorted(set(rest) - set(inner_val))
                 specs.append(RunSpec("lopo", norm, lopo_seed, tuple(inner_train), tuple(inner_val), (held,), fold=held))
     return specs
-
-
-def git_commit() -> str | None:
-    try:
-        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=BACKEND_DIR, capture_output=True, text=True, timeout=10)
-        return out.stdout.strip() or None
-    except (OSError, subprocess.SubprocessError):
-        return None
 
 
 @dataclass

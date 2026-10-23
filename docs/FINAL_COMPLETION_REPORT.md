@@ -265,7 +265,7 @@ The live checks included one rejected signup request carrying `is_admin`. It fai
 
 | # | Check | Result |
 |---|---|---|
-| 1 | `python -m pytest -q` (backend; synthetic data, temporary SQLite) | **241 passed** |
+| 1 | `python -m pytest -q` (backend; synthetic data, temporary SQLite) | **239 passed**, 2 deselected (integration). The same suite with `torch` made unimportable, as on the CI backend runner: **208 passed**, 2 torch modules skipped by design. `python -m pytest -m integration` (read-only, real DEAP files): **2 passed**. |
 | 2 | `npm test` (frontend unit tests) | **36 passed**, 0 failed |
 | 3 | `npx vite build` (production build) | **OK** |
 | 4 | Browser acceptance suite (headless Edge, isolated SQLite backend + copied registry; desktop and 375 px) | **37 / 37**: standalone sign-in on every route, auth errors, deep links, session expiry, 401/403, exactly 12 participants, no frozen ID, frozen 404, role notices, Overview, mobile |
@@ -302,4 +302,4 @@ The browser suites are scratch harnesses outside the repository. The repository'
 | Backend tests, frontend tests, build, `git diff --check` | PASS |
 | PostgreSQL, active pointer and model files preserved | PASS |
 | Frozen-participant evaluation | **BLOCKED** (Decision I) |
-| Commit and push (no force); GitHub Actions verified | Commit and run IDs are reported with the delivery message |
+| Commit and push (no force); GitHub Actions verified | PASS after one fix: the first CI run on `f5ed95c` failed in the backend job. Five research test modules imported `git_commit` from the torch-based module, and the CI backend job has no torch. The helper now lives in the torch-free `app/ml/provenance.py` and is re-exported from the old path. See the delivery message for the final run. |

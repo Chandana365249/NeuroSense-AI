@@ -32,7 +32,7 @@ from scipy.stats import spearmanr
 from sklearn.model_selection import StratifiedKFold
 
 from app.core.config import get_settings
-from app.ml.deep.robust_evaluation import git_commit
+from app.ml.provenance import git_commit
 from app.ml.models import candidate_models
 from app.ml.stats import mean_ci, wilcoxon
 from scripts import within_person_diagnostic as wp

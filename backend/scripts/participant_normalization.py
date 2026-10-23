@@ -22,7 +22,7 @@ from typing import Any
 import numpy as np
 
 from app.core.config import get_settings
-from app.ml.deep.robust_evaluation import git_commit
+from app.ml.provenance import git_commit
 from app.ml.models import candidate_models
 from app.ml.stats import mean_ci, wilcoxon
 from scripts import cross_participant_lvo as lvo
