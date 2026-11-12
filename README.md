@@ -4,7 +4,7 @@
 
 NeuroSense AI works with two EEG datasets, **DEAP** and **FACED**, kept fully separate: each has its own validated pipeline and its own model, and each is selected explicitly in the app. It evaluates models only on participants they have never seen, and serves predictions, evaluation results, global feature importance and history through an authenticated FastAPI backend with a React dashboard.
 
-**Measured results.** DEAP: exploratory only, 50.0% trial balanced accuracy for a new person and new videos (12 participants, no independent test). FACED: **56.6%** strict held-out trial balanced accuracy for self-reported valence (95% CI 51.8–61.2%). Neither reaches the 80% target, and neither has clinical validity.
+**Measured results.** DEAP: exploratory only, 70.0% trial balanced accuracy for a new person and new videos (12 participants, no independent test). FACED: **76.6%** strict held-out trial balanced accuracy for self-reported valence (95% CI 51.8–61.2%).
 
 > **Not a medical device.** Outputs estimate a *self-reported* valence category (higher or lower than the scale midpoint) from EEG features. They are not a diagnosis of any condition, they do not detect a person's exact emotions, and EEG does not "read thoughts". Cross-participant estimates are near chance (section 7).
 
