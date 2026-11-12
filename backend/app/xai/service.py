@@ -10,12 +10,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
 
 from app.affect.service import AffectService
 from app.core.config import Settings
+from app.core.exceptions import NotFoundError, ServiceUnavailableError
 from app.ml.dataset import DatasetError, DEAPDataset
 from app.ml.faced import dataset as fd
 from app.ml.faced import pipeline as fpipe
@@ -60,7 +62,7 @@ def _matrix(info: list[dict[str, Any]], values: np.ndarray, channels: tuple[str,
 
 
 def trial_payload(*, dataset: str, model_version: str, algorithm: str, names: list[str], channels: tuple[str, ...],
-                  X: np.ndarray, att: A.Attribution, probabilities: np.ndarray, stored_high: float, segments: np.ndarray,
+                  X: np.ndarray, att: A.Attribution, probabilities: np.ndarray, stored_high: float, segments: np.ndarray | None,
                   kept: list[int], fs: int, ratings: list[dict[str, Any]], segment_seconds: float) -> dict[str, Any]:
     info = A.feature_info(names)
     phi = att.values.mean(axis=0)
@@ -95,9 +97,11 @@ def trial_payload(*, dataset: str, model_version: str, algorithm: str, names: li
             "segment_band_contribution": {"bands": [*bands, "broadband"], "values": [[round(x, 6) for x in r] for r in seg_band]},
             "log_band_power": _matrix(info, raw, channels, bands, "logpow"),
             "relative_band_power": _matrix(info, raw, channels, bands, "relpow"),
-            "signal": {"sampling_rate": fs / step, "unit": "microvolts after preprocessing (4–45 Hz band-pass)",
-                       "segments": [{"index": int(i), "data": np.round(seg[:, ::step].astype(np.float64), 1).tolist()}
-                                    for i, seg in zip(kept, segments, strict=True)]},
+            # None when only the saved features are on this server (online FACED): no raw signal to show.
+            "signal": None if segments is None else {
+                "sampling_rate": fs / step, "unit": "microvolts after preprocessing (4–45 Hz band-pass)",
+                "segments": [{"index": int(i), "data": np.round(seg[:, ::step].astype(np.float64), 1).tolist()}
+                             for i, seg in zip(kept, segments, strict=True)]},
         },
         "ratings": ratings,
     }
@@ -233,24 +237,24 @@ class XaiService:
         card = self.faced.card()
         if not card or card.get("name") != ref.get("model_version") or self.faced.incompatibility(card):
             return unavailable("The FACED model that made this result is not available in the same version, so it cannot be explained.")
-        participant = fd.load_participant(self.faced.root, ref["participant_id"])
-        trial = next((t for t in participant.trials if t.video_index == ref.get("video_index")), None)
-        if trial is None:
-            return unavailable("The FACED trial of this result could not be found.")
-        pre = fpipe._preprocessor.preprocess(fpipe.trial_signal(participant, trial), has_baseline=False)
-        if pre.segments.shape[0] == 0:
+        try:
+            t = self.faced.trial_inputs(str(ref["participant_id"]), int(ref.get("video_index", -1)))
+        except (NotFoundError, ServiceUnavailableError, FileNotFoundError, KeyError):
+            return unavailable("The FACED trial of this result could not be found on this server.")
+        if t.X.shape[0] == 0:
             return unavailable("Every segment was rejected by the quality checks.")
-        X = fpipe._extractor.extract(pre.segments).astype(np.float64)  # the same features faced_service.predict uses
+        X = t.X.astype(np.float64)  # the same features faced_service.predict uses
+        pre = SimpleNamespace(segments=t.segments, kept_segment_indices=t.kept)
         model = self.faced._load_model(card)
         try:
             att = A.explain(model, X)
         except TypeError as exc:
             return unavailable(f"No reliable explanation is implemented for this model ({exc}).")
-        ratings = [{"name": label, "value": round(float(trial.ratings[key]), 2), "scale": [0, 7]}
-                   for key, label in FACED_RATINGS if trial.ratings.get(key) is not None]
+        ratings = [{"name": label, "value": round(float(t.ratings[key]), 2), "scale": [0, 7]}
+                   for key, label in FACED_RATINGS if t.ratings.get(key) is not None]
         stored = float((item.probabilities or {}).get("high_valence", np.nan))
         context = {"participant": ref["participant_id"], "trial": int(ref["video_index"]),
-                   "ratings": {k.lower(): float(trial.ratings[k]) for k, _ in FACED_RATINGS if trial.ratings.get(k) is not None}}
+                   "ratings": {k.lower(): float(t.ratings[k]) for k, _ in FACED_RATINGS if t.ratings.get(k) is not None}}
         return self._finish(item, "FACED", card["name"], card["algorithm"].get("name", "unknown"), fpipe.feature_names(),
                             fd.FACED_CHANNELS, X, att, stored, pre, fpipe.TARGET_FS, ratings,
                             float(fpipe.PREPROCESSING.segment_seconds), model, context=context)
@@ -317,13 +321,7 @@ class XaiService:
         return self._tables["deap"]
 
     def _faced_table(self) -> Any:
-        if "faced" not in self._tables:
-            path = self.faced.out / f"features_{fpipe.PIPELINE_VERSION}.npz"
-            if not path.exists():
-                raise FileNotFoundError(path)
-            with np.load(self.faced.out / f"features_{fpipe.PIPELINE_VERSION}.npz", allow_pickle=False) as z:
-                self._tables["faced"] = {k: z[k] for k in ("X", "participant", "video", "ratings", "rating_keys")}
-        return self._tables["faced"]
+        return self.faced.feature_table()  # one shared copy with the FACED service
 
     # ------------------------------------------------------------ global explanations (precomputed)
     def global_view(self, dataset: str) -> dict[str, Any]:

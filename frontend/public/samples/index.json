@@ -1,0 +1,20 @@
+[
+ {
+  "file": "faced-sample-pleasant.json",
+  "title": "Pleasant clip (rated pleasant by the viewer)",
+  "source": "FACED sub-002, video 20 (Forrest Gump)",
+  "viewer_valence_rating_0_to_7": 6.57
+ },
+ {
+  "file": "faced-sample-unpleasant.json",
+  "title": "Unpleasant clip (rated unpleasant by the viewer)",
+  "source": "FACED sub-004, video 1 (The Tokyo Trial)",
+  "viewer_valence_rating_0_to_7": 0.01
+ },
+ {
+  "file": "faced-sample-neutral.json",
+  "title": "Neutral clip (rated in between by the viewer)",
+  "source": "FACED sub-005, video 18 (Minions)",
+  "viewer_valence_rating_0_to_7": 3.75
+ }
+]

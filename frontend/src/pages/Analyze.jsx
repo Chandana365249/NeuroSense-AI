@@ -25,21 +25,21 @@ const SOURCES = [
   { id: 'synthetic', label: 'Synthetic test', hint: 'Generated, not real EEG' },
 ];
 
-function SourcePicker({ value, onChange, name }) {
+function SourcePicker({ value, onChange, name, sources = SOURCES }) {
   const refs = useRef({});
   // Arrow keys move between options, as in a native radio group.
   const onKeyDown = (event) => {
-    const i = SOURCES.findIndex((s) => s.id === value);
+    const i = sources.findIndex((s) => s.id === value);
     const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
     if (!step) return;
     event.preventDefault();
-    const next = SOURCES[(i + step + SOURCES.length) % SOURCES.length].id;
+    const next = sources[(i + step + sources.length) % sources.length].id;
     onChange(next);
     refs.current[next]?.focus();
   };
   return (
-    <div className="source-picker" role="radiogroup" aria-label={name} onKeyDown={onKeyDown}>
-      {SOURCES.map((s) => (
+    <div className={`source-picker cols-${sources.length}`} role="radiogroup" aria-label={name} onKeyDown={onKeyDown}>
+      {sources.map((s) => (
         <button key={s.id} type="button" role="radio" aria-checked={value === s.id} tabIndex={value === s.id ? 0 : -1}
           ref={(el) => { refs.current[s.id] = el; }} className={`source-option ${value === s.id ? 'is-selected' : ''}`}
           onClick={() => onChange(s.id)}>
@@ -132,6 +132,63 @@ function DeapPanel({ publicData, busy, onRun, ids, selection, onSelect }) {
   );
 }
 
+const SAMPLES_URL = `${import.meta.env.BASE_URL || '/'}samples/`;
+
+/** Ready-made example files: real FACED EEG (CC BY 4.0) converted to this model's upload format. */
+function SampleFiles({ busy, staged, onPick }) {
+  const [list, setList] = useState(null);
+  const [loading, setLoading] = useState(null);
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${SAMPLES_URL}index.json`).then((r) => (r.ok ? r.json() : [])).then((d) => { if (!cancelled) setList(Array.isArray(d) ? d : []); })
+      .catch(() => { if (!cancelled) setList([]); });
+    return () => { cancelled = true; };
+  }, []);
+  if (!list?.length) return null;
+  const use = async (s) => {
+    if (busy || loading) return;
+    setLoading(s.file);
+    setError(null);
+    try {
+      const r = await fetch(`${SAMPLES_URL}${s.file}`);
+      if (!r.ok) throw new Error('The example file could not be downloaded.');
+      onPick(await r.json(), s.file);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(null);
+    }
+  };
+  return (
+    <div className="samples">
+      <p className="samples-head">No EEG file? Try an example</p>
+      <ul className="sample-list">
+        {list.map((s) => (
+          <li key={s.file} className={`sample-item ${staged?.fileName === s.file ? 'is-selected' : ''}`}>
+            <span className="sample-text">
+              <strong>{s.title}</strong>
+              <span className="muted small">{s.source} · viewer&apos;s own rating {s.viewer_valence_rating_0_to_7} of 7</span>
+            </span>
+            <span className="sample-actions">
+              <button type="button" className="btn btn-secondary btn-small" onClick={() => use(s)} aria-disabled={busy || undefined}>
+                {loading === s.file ? 'Loading…' : staged?.fileName === s.file ? 'Selected' : 'Use this'}
+              </button>
+              <a className="btn btn-ghost btn-small" href={`${SAMPLES_URL}${s.file}`} download>Download</a>
+            </span>
+          </li>
+        ))}
+      </ul>
+      {error ? <p className="form-error" role="alert">{error}</p> : null}
+      <p className="field-hint">
+        Real EEG from the FACED study (Chen et al. 2023, CC BY 4.0), converted to 32 channels at 128 Hz. FACED has no
+        AF3 or AF4 electrode, so those two channels are estimated from their neighbours. The model was trained on a
+        different headset and different people, so treat these results as a demonstration.
+      </p>
+    </div>
+  );
+}
+
 function UploadPanel({ publicData, busy, onRun, onStage, staged, ids }) {
   const info = publicData.modelInfo;
   const req = info?.input_requirements;
@@ -153,8 +210,20 @@ function UploadPanel({ publicData, busy, onRun, onStage, staged, ids }) {
     }
   };
 
+  const pickSample = (parsed, fileName) => {
+    try {
+      const checked = validateUpload(parsed, req, baseline);
+      setError(null);
+      onStage({ ...checked, fileName, id: nextStagedId() });
+    } catch (err) {
+      onStage(null);
+      setError(err.message);
+    }
+  };
+
   return (
     <div className="form-section">
+      <SampleFiles busy={busy} staged={staged} onPick={pickSample} />
       <ul className="format-list" id={`${ids}-format`}>
         <li><strong>{req?.channels ?? '—'} EEG channels</strong> in DEAP (Geneva) order</li>
         <li><strong>{req?.sampling_rate_hz ?? '—'} samples per second</strong>, values in microvolts</li>
@@ -244,8 +313,11 @@ function AnalyzeWorkspace({ auth, publicData, initialParticipant, initialSource 
   const [generated, setGenerated] = useState(null); // synthetic signal generated in the browser
   const [announcement, setAnnouncement] = useState('');
   const resultHeading = useRef(null);
-  // DEAP is the default: when no participant can be offered, its panel explains why and points to the alternatives.
-  const activeSource = source || 'deap';
+  // DEAP recordings are the default where they are installed (local version). Online none are hosted (the DEAP
+  // licence does not allow it), so that option is hidden and the page opens on the upload.
+  const noDeap = demoOptions(publicData.demo).status === 'none';
+  const sources = noDeap ? SOURCES.filter((s) => s.id !== 'deap') : SOURCES;
+  const activeSource = source && sources.some((s) => s.id === source) ? source : noDeap ? 'upload' : 'deap';
   const currentKey = selectionKey(activeSource, { deap: deapSelection, upload: uploaded, synthetic: generated });
   const shown = visibleOutcome(outcome, currentKey);
 
@@ -317,11 +389,11 @@ function AnalyzeWorkspace({ auth, publicData, initialParticipant, initialSource 
     <>
       <PipelineStrip dataset="DEAP" model={`${algorithmLabel(info.algorithm)} (active model)`}
         pipeline={`DEAP pipeline (${info.input_requirements?.channels ?? 32} channels, ${info.input_requirements?.sampling_rate_hz ?? 128} Hz, ${info.feature_schema?.count ?? 440} features)`}
-        note="All three inputs below use the DEAP pipeline and the active DEAP model. FACED recordings cannot be analyzed here; choose the FACED tab." />
+        note="Every input below uses the DEAP pipeline and the active DEAP model. FACED recordings cannot be analyzed here; choose the FACED tab." />
       <div className="analyze-grid">
         <div className="stack">
           <Card title="1. Choose an input" titleId="choose-input">
-            <SourcePicker value={activeSource} onChange={setSource} name="Input source" />
+            <SourcePicker value={activeSource} onChange={setSource} name="Input source" sources={sources} />
             <div className="source-panel">
               {activeSource === 'deap' ? <DeapPanel {...panelProps} selection={deapSelection} onSelect={setDeapSelection} /> : null}
               {activeSource === 'upload' ? <UploadPanel {...panelProps} staged={uploaded} onStage={setUploaded} /> : null}

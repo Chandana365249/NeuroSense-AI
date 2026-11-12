@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import threading
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +32,26 @@ STATUS_TEXT = {
 }
 
 
+FEATURES_FILE = f"features_{fpipe.PIPELINE_VERSION}.npz"
+
+
+@dataclass
+class TrialInputs:
+    """Everything a FACED prediction or explanation needs for one trial.
+
+    From the recording when it is installed (local version), otherwise from the saved feature table, which holds the
+    same features computed from the same recordings (identical values; tests/test_faced_features_mode.py).
+    `segments` (the preprocessed signal) only exists when the recording is installed."""
+    X: np.ndarray
+    kept: list[int]
+    rejected: int
+    segments: np.ndarray | None
+    valence: float
+    ratings: dict[str, float]
+    title: str | None
+    targeted_emotion: str | None
+
+
 class FacedService:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
@@ -39,6 +60,7 @@ class FacedService:
         self._lock = threading.Lock()
         self._model: Any = None
         self._model_file: str | None = None
+        self._table: dict[str, Any] | None = None
 
     # ------------------------------------------------------------ cached files
     def _json(self, name: str) -> dict[str, Any] | None:
@@ -47,9 +69,30 @@ class FacedService:
             return None
         return json.loads(path.read_text(encoding="utf-8"))
 
+    def recordings_installed(self) -> bool:
+        return (self.root / "participants.tsv").exists()
+
+    def features_available(self) -> bool:
+        return (self.out / FEATURES_FILE).exists()
+
+    def source(self) -> str | None:
+        """'recordings' (local version), 'features' (online: saved feature table, no raw EEG) or None."""
+        return "recordings" if self.recordings_installed() else "features" if self.features_available() else None
+
+    def feature_table(self) -> dict[str, Any]:
+        """The saved per-segment feature table of every validated FACED trial (loaded once)."""
+        with self._lock:
+            if self._table is None:
+                path = self.out / FEATURES_FILE
+                if not path.exists():
+                    raise FileNotFoundError(path)
+                with np.load(path, allow_pickle=False) as z:
+                    self._table = {k: z[k] for k in ("X", "participant", "video", "segment", "ratings", "rating_keys")}
+            return self._table
+
     def _report(self) -> dict[str, Any]:
         report = self._json("validation_report.json")
-        if report is None or not (self.root / "participants.tsv").exists():
+        if report is None or self.source() is None:
             raise ServiceUnavailableError("FACED is not installed or not validated on this server")
         return report
 
@@ -62,13 +105,15 @@ class FacedService:
     def _stimuli(self) -> dict[int, dict[str, str]]:
         try:
             return fd.stimuli(self.root)
-        except OSError:
-            return {}
+        except OSError:  # online: the small stimulus list shipped with the deployment
+            saved = self._json("stimuli.json") or {}
+            return {int(k): v for k, v in saved.items()}
 
     # ------------------------------------------------------------ public views
     def status(self) -> dict[str, Any]:
         report = self._json("validation_report.json")
-        installed = (self.root / "participants.tsv").exists()
+        source = self.source()
+        installed = source is not None
         card = self.card()
         summary = (report or {}).get("summary", {})
         return {
@@ -77,7 +122,7 @@ class FacedService:
             "license": "CC-BY-4.0",
             "citation": "Chen, J., Wang, X., Huang, C., Hu, X., Shen, X., & Zhang, D. (2023). A Large Finer-grained "
                         "Affective Computing EEG Dataset. Scientific Data, 10, 740. doi:10.1038/s41597-023-02650-w",
-            "installed": installed, "validated": report is not None and installed,
+            "installed": installed, "validated": report is not None and installed, "source": source,
             "participants_declared": summary.get("participants_declared"),
             "participants_valid": summary.get("participants_valid"),
             "participants_failed": len(summary.get("participants_failed", [])),
@@ -216,6 +261,26 @@ class FacedService:
                 self._model_file = card["artifact"]
             return self._model
 
+    def trial_inputs(self, pid: str, video: int) -> TrialInputs:
+        row = self._participant_row(pid)
+        trial_row = next((t for t in row["trials"] if t["video_index"] == video), None)
+        if trial_row is None or not trial_row["used"]:
+            raise NotFoundError(f"Video {video} is not a usable trial for {pid}")
+        if self.recordings_installed():
+            participant = fd.load_participant(self.root, pid)
+            trial = next(t for t in participant.trials if t.video_index == video)
+            pre = fpipe._preprocessor.preprocess(fpipe.trial_signal(participant, trial), has_baseline=False)
+            X = (fpipe._extractor.extract(pre.segments) if pre.segments.shape[0]
+                 else np.empty((0, len(fpipe.feature_names())), np.float32))
+            return TrialInputs(X, list(pre.kept_segment_indices), len(pre.rejected_segment_indices), pre.segments,
+                               float(trial.valence), dict(trial.ratings), trial.title, trial.targeted_emotion)
+        z = self.feature_table()
+        rows = np.flatnonzero((z["participant"] == pid) & (z["video"] == video))
+        rows = rows[np.argsort(z["segment"][rows], kind="stable")]
+        return TrialInputs(z["X"][rows], [int(i) for i in z["segment"][rows]], int(trial_row.get("rejected_segments", 0)),
+                           None, float(trial_row["valence"]), dict(trial_row.get("ratings") or {}),
+                           self._stimuli().get(video, {}).get("source_title"), trial_row.get("targeted_emotion"))
+
     def predict(self, pid: str, video: int) -> dict[str, Any]:
         if not 1 <= video <= fd.N_VIDEOS:
             raise InvalidInputError("video_index must be between 1 and 28")
@@ -225,36 +290,32 @@ class FacedService:
         problem = self.incompatibility(card)
         if problem:
             raise ServiceUnavailableError(problem)
-        row = self._participant_row(pid)
-        trial_row = next((t for t in row["trials"] if t["video_index"] == video), None)
-        if trial_row is None or not trial_row["used"]:
-            raise NotFoundError(f"Video {video} is not a usable trial for {pid}")
-        participant = fd.load_participant(self.root, pid)
-        trial = next(t for t in participant.trials if t.video_index == video)
-        feats, kept, rejected = fpipe.trial_features(participant, trial)
+        t = self.trial_inputs(pid, video)
+        feats, rejected = t.X, t.rejected
         if feats.shape[0] == 0:
             raise NotFoundError("Every segment of this trial was rejected by the artifact check")
         model = self._load_model(card)
         seg = model.predict_proba(feats.astype(np.float64))[:, 1]
         p_high = float(seg.mean())
         status = self.evaluation_status(pid, video)
-        actual = "high_valence" if fpipe.valence_label(trial.valence) else "low_valence"
+        actual = "high_valence" if fpipe.valence_label(t.valence) else "low_valence"
         strict = card.get("evaluation", {}).get("S1_strict_primary", {})
         provenance = {
             "dataset": "FACED", "dataset_id": fd.DATASET_ID, "dataset_version": fd.DATASET_VERSION,
-            "participant_id": pid, "video_index": video, "video_title": trial.title, "targeted_emotion": trial.targeted_emotion,
+            "participant_id": pid, "video_index": video, "video_title": t.title, "targeted_emotion": t.targeted_emotion,
+            "input": "recording" if t.segments is not None else "saved_features",
             "model_version": card["name"], "algorithm": card["algorithm"].get("name", "unknown"), "pipeline": fpipe.PIPELINE_VERSION,
             "label_rule": f"valence>{fpipe.VALENCE_THRESHOLD}", "protocol": card.get("protocol"), "split_sha256": card.get("split_sha256"),
             "evaluation_status": status, "evaluation_text": STATUS_TEXT.get(status or ""),
             "model_strict_balanced_accuracy": strict.get("trial_balanced_accuracy"),
-            "self_reported_valence": round(float(trial.valence), 2), "self_reported_label": actual,
+            "self_reported_valence": round(float(t.valence), 2), "self_reported_label": actual,
             "segment_probabilities": [round(float(x), 4) for x in seg],
         }
         return {"participant_id": pid, "video_index": video, "model": card["name"], "pipeline": fpipe.PIPELINE_VERSION,
                 "probability_high_valence": p_high,
                 "predicted_label": "high_valence" if p_high > 0.5 else "low_valence",
                 "segments": int(feats.shape[0]), "segment_probabilities": [float(x) for x in seg],
-                "self_reported_valence": trial.valence,
+                "self_reported_valence": t.valence,
                 "actual_label": actual, "segments_rejected": rejected, "provenance": provenance,
                 "evaluation_status": status, "evaluation_text": STATUS_TEXT.get(status or ""),
                 "source": "FACED recording (real EEG)"}

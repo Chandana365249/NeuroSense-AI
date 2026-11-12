@@ -50,7 +50,17 @@ function FacedGate({ state, reload, children }) {
       </Notice>
     );
   }
-  return children(st);
+  if (st.source !== 'features') return children(st);
+  return (
+    <>
+      <Notice tone="info" title="Online version of FACED" announce={false}>
+        Trials are analysed from the features computed from the original FACED recordings, so the results are the same
+        as in the local version. The raw EEG is not hosted online, so the EEG-trace card is not shown. FACED: Chen et
+        al. (2023), Scientific Data 10, 740, CC BY 4.0.
+      </Notice>
+      {children(st)}
+    </>
+  );
 }
 
 function ModelSummary({ model }) {

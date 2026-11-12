@@ -245,6 +245,7 @@ function Deck({ e }) {
   const towardHigh = e.trial_output >= e.base_value;
   const direction = (x) => `Pushed toward ${x >= 0 ? 'higher' : 'lower'} valence`;
   const openSegment = (i) => {
+    if (!v.signal) return;
     setSegment(i);
     setFlipped((old) => new Set(old).add('fc-eeg'));
   };
@@ -256,17 +257,18 @@ function Deck({ e }) {
       detail: ext ? `Lowest at ${ext.low.label} (${(ext.low.p * 100).toFixed(0)}%) · ${v.kept_segments.length} segments` : null,
       body: (
         <>
-          <SegmentScores view={v} onPick={openSegment} />
-          <p className="meta small">Model output for each {v.segment_seconds}-second segment; the result is their average. Click a point to open that segment&apos;s EEG.</p>
+          <SegmentScores view={v} onPick={v.signal ? openSegment : undefined} />
+          <p className="meta small">Model output for each {v.segment_seconds}-second segment; the result is their average.{v.signal ? ' Click a point to open that segment’s EEG.' : ''}</p>
         </>
       ),
     },
-    {
+    // No raw signal when the server holds only the saved features (FACED online): the card is left out.
+    v.signal ? {
       id: 'fc-eeg', icon: '≋', title: 'What does the EEG look like?',
       answer: `${e.channels.length} channels · ${v.kept_segments.length} clean segments`,
       detail: 'Pick any segment to see every channel',
       body: <EegTraces signal={v.signal} channels={e.channels} segment={segment} onSegment={setSegment} />,
-    },
+    } : null,
     {
       id: 'fc-power', icon: '▦', title: 'Where is the brain activity strongest?',
       answer: power ? `${firstWord(power.band)} at ${power.channel}` : '—',

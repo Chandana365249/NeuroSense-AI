@@ -5,9 +5,9 @@ Usage (from backend/):  python -m scripts.make_deploy_bundle
 What goes in: the backend and frontend source, the saved research results, and only the model artifacts the app
 serves (the active DEAP model, the FACED model, the affect models, the precomputed global explanations, evidence
 JSON and graphs). What never goes in: the DEAP and FACED recordings, extracted feature tables, the database,
-stored uploads, logs and any .env file. Without the recordings, the online app analyses uploaded EEG files and shows
-the evidence pages; browsing dataset participants stays a local feature (the DEAP licence does not allow
-redistribution of its recordings).
+stored uploads, logs and any .env file. One exception: the FACED feature table (FACED is CC-BY 4.0, credited in the
+app), so FACED participants can be analysed online with the same numbers as from the recordings. No DEAP recording
+and nothing derived from one per trial is shipped (the DEAP licence does not allow redistribution).
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "deploy" / "space"
 FORBIDDEN = (".env", ".dat", ".bdf", ".sqlite3", ".db", ".npz", ".npy", ".log")
+ALLOWED_DATA = ("outputs/faced/features_faced-v2.npz",)  # FACED (CC-BY 4.0) feature table; see the module docstring
 
 DOCKERFILE = """\
 # NeuroSense AI: API + built frontend in one container. Listens on $PORT (set by Render; 7860 otherwise).
@@ -102,9 +103,12 @@ def copy_file(rel: str) -> None:
 
 
 def main() -> None:
-    if OUT.exists():
-        shutil.rmtree(OUT)
-    OUT.mkdir(parents=True)
+    # Rebuild in place but keep .git: the folder is also the checkout of the deployment repository.
+    OUT.mkdir(parents=True, exist_ok=True)
+    for child in OUT.iterdir():
+        if child.name == ".git":
+            continue
+        shutil.rmtree(child) if child.is_dir() else child.unlink()
     (OUT / "Dockerfile").write_text(DOCKERFILE, encoding="utf-8")
     (OUT / "README.md").write_text(README, encoding="utf-8")
 
@@ -130,14 +134,25 @@ def main() -> None:
                 "outputs/faced/validation_report.json", "outputs/faced/protocol_split_v1.json", "outputs/faced/final_results.json",
                 "outputs/faced/stimulus_category/final_results.json", "outputs/faced/cleaning/results.json"):
         copy_file(rel)
+    for rel in ALLOWED_DATA:
+        copy_file(rel)
+    import sys
+    sys.path.insert(0, str(ROOT / "backend"))
+    from app.core.config import get_settings
+    from app.ml.faced import dataset as fd
+
+    stimuli = {str(k): {"source_title": v.get("source_title")} for k, v in fd.stimuli(get_settings().faced_dataset_dir).items()}
+    (OUT / "outputs/faced/stimuli.json").write_text(json.dumps(stimuli, indent=1), encoding="utf-8")
     copy_tree(ROOT / "outputs/affect", OUT / "outputs/affect")
     copy_tree(ROOT / "outputs/cache/xai", OUT / "outputs/cache/xai")
     for rel in ("outputs/metrics", "outputs/graphs"):
         if (ROOT / rel).exists():
             copy_tree(ROOT / rel, OUT / rel)
 
-    files = [p for p in OUT.rglob("*") if p.is_file()]
-    bad = [p for p in files if p.name.endswith(FORBIDDEN) or "Dataset" in p.parts or p.name == ".env"]
+    files = [p for p in OUT.rglob("*") if p.is_file() and ".git" not in p.relative_to(OUT).parts]
+    allowed = {OUT / rel for rel in ALLOWED_DATA}
+    bad = [p for p in files if p not in allowed and (p.name.endswith(FORBIDDEN) or "Dataset" in p.parts or p.name == ".env")]
+    assert not any("deap" in p.name.lower() and p.suffix in (".npz", ".npy") for p in files)
     assert not bad, f"forbidden files in the bundle: {bad[:5]}"
     size = sum(p.stat().st_size for p in files)
     print(f"wrote {OUT} ({len(files)} files, {size / 1e6:.1f} MB); active DEAP model {active}, FACED model {card['name']}")
