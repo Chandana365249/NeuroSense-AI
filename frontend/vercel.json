@@ -4,6 +4,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://gandlachandana12-neurosense-ai.hf.space/api/:path*" }
+    { "source": "/api/:path*", "destination": "https://neurosenseai-backend.onrender.com/api/:path*" }
   ]
 }

@@ -42,7 +42,7 @@ full explanations. That fits Render's free 512 MB instance.
      `python -c "import secrets; print(secrets.token_urlsafe(48))"`. Never put it in git.
    - The container listens on `$PORT`, which Render sets.
 
-4. **Point Vercel at the backend.** Set the destination in `frontend/vercel.json` to the Render URL, then deploy the
+4. **Point Vercel at the backend.** `frontend/vercel.json` forwards `/api` to https://neurosenseai-backend.onrender.com, then deploy the
    frontend with `npx vercel --prod` from `frontend/`.
 
 ## Notes
