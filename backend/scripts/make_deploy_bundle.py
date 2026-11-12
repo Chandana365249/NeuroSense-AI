@@ -1,4 +1,4 @@
-"""Assemble a self-contained deployment folder (a Docker app, e.g. a Hugging Face Space) in deploy/space/.
+"""Assemble a self-contained deployment folder (a Docker app for Render or any Docker host) in deploy/space/.
 
 Usage (from backend/):  python -m scripts.make_deploy_bundle
 
@@ -21,7 +21,7 @@ OUT = ROOT / "deploy" / "space"
 FORBIDDEN = (".env", ".dat", ".bdf", ".sqlite3", ".db", ".npz", ".npy", ".log")
 
 DOCKERFILE = """\
-# NeuroSense AI: API + built frontend in one container. Listens on port 7860 (Hugging Face Spaces default).
+# NeuroSense AI: API + built frontend in one container. Listens on $PORT (set by Render; 7860 otherwise).
 FROM node:20-slim AS web
 WORKDIR /web
 COPY frontend/package.json frontend/package-lock.json ./
@@ -41,7 +41,7 @@ COPY --chown=user docs/ docs/
 COPY --from=web --chown=user /web/dist frontend/dist
 RUN mkdir -p /app/data && chown user /app/data
 USER user
-# The JWT secret is NOT set here: add NEUROSENSE_JWT_SECRET_KEY as a secret in the hosting settings.
+# The JWT secret is NOT set here: add NEUROSENSE_JWT_SECRET_KEY as a secret environment variable on the host.
 ENV NEUROSENSE_ENVIRONMENT=production \\
     NEUROSENSE_OUTPUT_DIR=/app/outputs \\
     NEUROSENSE_DATASET_DIR=/app/Dataset/DEAP \\
@@ -51,7 +51,7 @@ ENV NEUROSENSE_ENVIRONMENT=production \\
     NEUROSENSE_CORS_ORIGINS=[]
 EXPOSE 7860
 WORKDIR /app/backend
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:create_app --factory --host 0.0.0.0 --port 7860"]
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:create_app --factory --host 0.0.0.0 --port ${PORT:-7860}"]
 """
 
 README = """\
@@ -107,7 +107,6 @@ def main() -> None:
     OUT.mkdir(parents=True)
     (OUT / "Dockerfile").write_text(DOCKERFILE, encoding="utf-8")
     (OUT / "README.md").write_text(README, encoding="utf-8")
-    (OUT / ".gitattributes").write_text("*.joblib filter=lfs diff=lfs merge=lfs -text\n*.png filter=lfs diff=lfs merge=lfs -text\n", encoding="utf-8")
 
     for rel in ("backend/app", "backend/alembic"):
         copy_tree(ROOT / rel, OUT / rel)
