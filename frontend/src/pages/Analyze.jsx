@@ -1,17 +1,19 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { api } from '../api';
-import { demoOptions, isSynthetic, NO_RESULT_MESSAGE, roleNotice, selectionKey, SYNTHETIC_DONE_MESSAGE, trialLabel,
-  validateUpload, visibleOutcome } from '../analysis';
+import { demoOptions, roleNotice, selectionKey, trialLabel, validateUpload, visibleOutcome } from '../analysis';
 import Card from '../components/Card';
+import DatasetTabs, { PipelineStrip, useDataset } from '../components/DatasetTabs';
 import EegPreview from '../components/EegPreview';
+import { FacedAnalyze } from '../components/FacedExplorer';
 import LoadingBlock from '../components/LoadingBlock';
 import Notice from '../components/Notice';
 import PageHeader from '../components/PageHeader';
 import RequireAuth from '../components/RequireAuth';
-import ResultPanel from '../components/ResultPanel';
-import { classLabel, predictionLabel, pct, sourceLabel, when } from '../components/format';
-import { href } from '../router';
+import { algorithmLabel } from '../components/format';
+import { deapParticipantFrom, facedSelectionFrom, filterDeapParticipants } from '../datasets';
+import { navigate } from '../router';
 import { makeSyntheticSignal, SYNTHETIC_FILE_NAME } from '../synthetic';
+
 
 // Each staged upload or generated signal gets its own id, so a new file or a new signal is a new selection.
 let stagedInputs = 0;
@@ -52,7 +54,11 @@ function SourcePicker({ value, onChange, name }) {
 function DeapPanel({ publicData, busy, onRun, ids, selection, onSelect }) {
   const options = demoOptions(publicData.demo);
   const { participant, trial } = selection;
+  const [query, setQuery] = useState('');
   const current = options.participants.find((p) => p.id === participant) || options.participants[0];
+  const matches = filterDeapParticipants(options.participants, query);
+  // The selected participant stays listed, so the search never silently changes the selection.
+  const listed = current && !matches.includes(current) ? [current, ...matches] : matches;
 
   // Resolve the default (first participant, first available trial) into the shared selection.
   useEffect(() => {
@@ -95,11 +101,16 @@ function DeapPanel({ publicData, busy, onRun, ids, selection, onSelect }) {
         on this server). Each person rated how pleasant each music video felt, so you can compare the estimate with
         their own rating.
       </p>
+      <div className="field">
+        <label htmlFor={`${ids}-search`}>Search DEAP participants</label>
+        <input id={`${ids}-search`} type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. 7 or s07" />
+        <p className="field-hint" aria-live="polite">{query.trim() ? `${matches.length} of ${options.participants.length} participants match` : ''}</p>
+      </div>
       <div className="field-row">
         <div className="field">
           <label htmlFor={`${ids}-participant`}>Participant ({options.participants.length} available)</label>
           <select id={`${ids}-participant`} value={current?.id || ''} onChange={(e) => onSelect({ participant: e.target.value, trial })}>
-            {options.participants.map((p) => <option key={p.id} value={p.id}>{p.id}</option>)}
+            {listed.map((p) => <option key={p.id} value={p.id}>{p.id}</option>)}
           </select>
         </div>
         <div className="field">
@@ -221,45 +232,16 @@ function SyntheticPanel({ publicData, busy, onRun, onStage, onAnnounce }) {
   );
 }
 
-function RecentList({ recent, warning, onRetry }) {
-  return (
-    <>
-      {warning ? (
-        <p className="muted small recent-stale">
-          {warning === 'load' ? 'Recent analyses could not be loaded.' : 'This list may not include your latest analysis.'}{' '}
-          <button type="button" className="btn btn-secondary btn-small" onClick={onRetry}>Retry</button>
-        </p>
-      ) : null}
-      {!recent ? (warning ? null : <LoadingBlock label="Loading recent analyses…" lines={2} />)
-        : !recent.items.length ? <p className="muted">No analyses yet.</p> : (
-          <ul className="recent-list">
-            {recent.items.map((p) => (
-              <li key={p.prediction_id}>
-                <a href={href(`/results/${p.prediction_id}`)}>
-                  <span className="recent-class">{predictionLabel(p)}{isSynthetic(p) ? null : <span className="muted small"> · {pct(p.confidence)}</span>}</span>
-                  <span className="recent-meta">{sourceLabel(p)} · {when(p.created_at)}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-    </>
-  );
-}
-
-function AnalyzeWorkspace({ auth, publicData }) {
+function AnalyzeWorkspace({ auth, publicData, initialParticipant, initialSource = null }) {
   const ids = useId();
-  const [source, setSource] = useState(null);
+  const [source, setSource] = useState(initialSource);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false); // blocks a second submission before React re-renders the disabled buttons
   // Every outcome carries the key of the selection that produced it; see selectionKey / visibleOutcome.
   const [outcome, setOutcome] = useState({ result: null, error: null, pending: null });
-  const [deapSelection, setDeapSelection] = useState({ participant: '', trial: '' });
+  const [deapSelection, setDeapSelection] = useState({ participant: initialParticipant, trial: '' });
   const [uploaded, setUploaded] = useState(null); // validated file chosen by the user
   const [generated, setGenerated] = useState(null); // synthetic signal generated in the browser
-  const [recent, setRecent] = useState(null);
-  // null | 'load' (the list could not be loaded) | 'refresh' (a new result was saved but the list is stale)
-  const [recentWarning, setRecentWarning] = useState(null);
   const [announcement, setAnnouncement] = useState('');
   const resultHeading = useRef(null);
   // DEAP is the default: when no participant can be offered, its panel explains why and points to the alternatives.
@@ -274,20 +256,6 @@ function AnalyzeWorkspace({ auth, publicData }) {
     if (!busyRef.current) setAnnouncement('');
   }, [currentKey]);
 
-  const refreshRecent = async ({ afterPrediction = false, manual = false } = {}) => {
-    try {
-      setRecent(await api.predictions(auth.token, { limit: 5 }));
-      setRecentWarning(null);
-      if (manual) setAnnouncement('Recent analyses refreshed.');
-    } catch (err) {
-      if (err.status === 401) auth.expire();
-      else {
-        setRecentWarning(afterPrediction ? 'refresh' : 'load');
-        if (afterPrediction) setAnnouncement('This result was saved, but your recent analyses could not be refreshed.');
-      }
-    }
-  };
-  useEffect(() => { refreshRecent(); }, [auth.token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keyboard and screen-reader users land on the outcome; the summary is announced once.
   const finish = (message) => {
@@ -317,10 +285,8 @@ function AnalyzeWorkspace({ auth, publicData }) {
     // The prediction succeeded and is stored; a failed list refresh must not hide it.
     busyRef.current = false;
     setBusy(false);
-    setOutcome({ result: { key, prediction: result }, error: null, pending: null });
-    finish(isSynthetic(result) ? SYNTHETIC_DONE_MESSAGE
-      : `Analysis complete: ${classLabel(result.prediction)}, model probability ${pct(result.confidence)}.`);
-    refreshRecent({ afterPrediction: true });
+    setOutcome({ result: { key, prediction: result, eeg: payload.eeg || null }, error: null, pending: null });
+    navigate(`/results/${result.prediction_id}`); // every result opens on its own page
   };
 
   if (publicData.status === 'loading') return <LoadingBlock label="Loading the active model…" />;
@@ -344,10 +310,14 @@ function AnalyzeWorkspace({ auth, publicData }) {
     return <Notice tone="warning" title="No trained model is available">{publicData.modelInfo?.message || 'Analyses are unavailable.'}</Notice>;
   }
 
+  const info = publicData.modelInfo;
   const panelProps = { publicData, busy, onRun: run, ids };
   const preview = activeSource === 'upload' ? uploaded : activeSource === 'synthetic' ? generated : null;
   return (
     <>
+      <PipelineStrip dataset="DEAP" model={`${algorithmLabel(info.algorithm)} (active model)`}
+        pipeline={`DEAP pipeline (${info.input_requirements?.channels ?? 32} channels, ${info.input_requirements?.sampling_rate_hz ?? 128} Hz, ${info.feature_schema?.count ?? 440} features)`}
+        note="All three inputs below use the DEAP pipeline and the active DEAP model. FACED recordings cannot be analyzed here; choose the FACED tab." />
       <div className="analyze-grid">
         <div className="stack">
           <Card title="1. Choose an input" titleId="choose-input">
@@ -358,26 +328,18 @@ function AnalyzeWorkspace({ auth, publicData }) {
               {activeSource === 'synthetic' ? <SyntheticPanel {...panelProps} onStage={setGenerated} onAnnounce={setAnnouncement} /> : null}
             </div>
           </Card>
-          <Card title="Recent analyses" titleId="analyze-recent" actions={<a href={href('/history')} className="small">View history</a>}>
-            <RecentList recent={recent} warning={recentWarning} onRetry={() => refreshRecent({ manual: true })} />
-          </Card>
         </div>
 
-        <Card title="2. Result" titleId="result" titleRef={resultHeading} className="result-card">
+        <Card title="2. Run the analysis" titleId="result" titleRef={resultHeading} className="result-card">
           <p className="visually-hidden" role="status">{announcement}</p>
           <div aria-busy={shown.kind === 'loading'} data-outcome={shown.kind}>
             {shown.kind === 'loading' ? <LoadingBlock label="Analyzing the recording…" announce={false} /> : null}
             {shown.kind === 'error' ? <Notice tone="error" title="The analysis could not be completed">{shown.message}</Notice> : null}
-            {shown.kind === 'result' && recentWarning === 'refresh' ? (
-              <Notice tone="warning" announce={false}>
-                This result was saved, but your recent analyses could not be refreshed. It will appear in your history.
-              </Notice>
-            ) : null}
-            {shown.kind === 'result' ? <ResultPanel prediction={shown.prediction} showDetailLink /> : null}
+            {shown.kind === 'result' ? <LoadingBlock label="Opening the result…" announce={false} /> : null}
             {shown.kind === 'empty' ? (
               <div className="empty-state">
-                <p><strong>{NO_RESULT_MESSAGE}</strong></p>
-                <p className="muted">Each result is saved to your history.</p>
+                <p><strong>Choose an input and click Analyze.</strong></p>
+                <p className="muted">The result opens on its own page, with the estimates, the explanation and every graph. It is also saved to your history.</p>
               </div>
             ) : null}
           </div>
@@ -397,24 +359,34 @@ function AnalyzeWorkspace({ auth, publicData }) {
   );
 }
 
-export default function Analyze({ auth, publicData }) {
+export default function Analyze({ auth, publicData, route }) {
+  const [dataset, choose] = useDataset(route);
   return (
     <>
-      <PageHeader title="Analyze EEG" subtitle="Choose an EEG input, run the analysis, and read the result." />
+      <PageHeader title="Analyze EEG" subtitle="Choose a dataset and an EEG input, run the analysis, and read the result." />
+      <DatasetTabs value={dataset} onChange={choose} />
+      {dataset === 'faced' ? (
+        <div role="tabpanel" id="panel-faced" aria-labelledby="tab-faced">
+          <RequireAuth auth={auth} reason="Sign in to analyze FACED recordings.">
+            <FacedAnalyze auth={auth} initial={facedSelectionFrom(route.query)} />
+          </RequireAuth>
+        </div>
+      ) : (
+      <div role="tabpanel" id="panel-deap" aria-labelledby="tab-deap">
       <div className="intro-strip">
         <p>
           The model estimates whether a one-minute EEG recording looks more like trials people rated as
           <strong> more pleasant</strong> (higher self-reported valence) or <strong>less pleasant</strong> (lower), on
           the 1–9 scale used in the DEAP study.
         </p>
-        <p className="muted small">
-          Research prototype: for people it had not seen, estimates were close to chance. It does not detect emotions or
-          diagnose anything. <a href={href('/model')}>Read the evidence</a>
-        </p>
+        <p className="muted small">Research prototype. It does not detect emotions or diagnose anything.</p>
       </div>
       <RequireAuth auth={auth} reason="Sign in to analyze EEG recordings. Your analyses are saved to your history.">
-        <AnalyzeWorkspace auth={auth} publicData={publicData} />
+        <AnalyzeWorkspace key={`${deapParticipantFrom(route.query)}-${route.query.get('source')}`} auth={auth} publicData={publicData}
+          initialParticipant={deapParticipantFrom(route.query)} initialSource={route.query.get('source') === 'upload' ? 'upload' : null} />
       </RequireAuth>
+      </div>
+      )}
     </>
   );
 }

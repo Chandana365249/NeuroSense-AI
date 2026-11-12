@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import APIRouter, Query, Request, status
 from sqlalchemy.engine import make_url
 
-from app.api.deps import AdminUser, ClientIP, DatasetDep, DbSession, ModelServiceDep, SettingsDep, TrainingServiceDep
+from app.api.deps import AdminUser, ClientIP, CurrentUser, DatasetDep, DbSession, ModelServiceDep, SettingsDep, TrainingServiceDep
 from app.core.config import Settings
 from app.core.exceptions import InvalidInputError, ServiceUnavailableError
 from app.core.logging import get_logger
@@ -22,6 +22,7 @@ from app.services.explainability import global_importance
 from app.services.model_service import input_requirements
 from app.services.public_metadata import (public_dataset_facts, public_evaluation, public_protocol,
                                           training_provenance)
+from app.services.research_service import deap_summary
 
 router = APIRouter(tags=["model"])
 logger = get_logger("api")
@@ -70,6 +71,11 @@ def model_info(model_service: ModelServiceDep) -> ModelInfoOut:
         provenance=training_provenance(meta),
         disclaimer=meta["disclaimer"],
     )
+
+
+@router.get("/research/deap-summary", tags=["research"], summary="DEAP research headline, read from the saved result file")
+def deap_research_summary(_: CurrentUser, settings: SettingsDep) -> dict[str, Any]:
+    return deap_summary(settings)
 
 
 @router.get("/explain/global", response_model=GlobalImportanceOut, tags=["explainability"],

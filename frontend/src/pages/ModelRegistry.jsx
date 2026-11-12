@@ -6,8 +6,9 @@ import Card from '../components/Card';
 import LoadingBlock from '../components/LoadingBlock';
 import Notice from '../components/Notice';
 import PageHeader from '../components/PageHeader';
+import { datasetPath } from '../datasets';
 import StatusPill from '../components/StatusPill';
-import { algorithmLabel, evaluationSummary, NA, num, pct, when } from '../components/format';
+import { algorithmLabel, NA, when } from '../components/format';
 import { evaluationStatus, modelStatusLabel, trainingDataSummary } from '../modelInfo';
 import { href } from '../router';
 
@@ -37,19 +38,13 @@ function RegistryTable({ state, load, canActivate, onActivate }) {
       {/* Focusable so keyboard users can scroll the table sideways on narrow screens. */}
       <div className="table-wrap" role="region" aria-labelledby="registered-models" tabIndex={0}>
         <table className="table registry-table">
-          <caption className="visually-hidden">
-            Registered model versions, active model first. Metric columns are historical, pre-protocol test-split results
-            recorded at training time.
-          </caption>
+          <caption className="visually-hidden">Registered model versions, active model first.</caption>
           <thead>
             <tr>
               <th scope="col">Status</th>
               <th scope="col">Model</th>
               <th scope="col">Version</th>
               <th scope="col">Trained</th>
-              <th scope="col" className="th-historical">Historical balanced accuracy</th>
-              <th scope="col" className="th-historical">Historical macro-F1</th>
-              <th scope="col" className="th-historical">Historical ROC-AUC</th>
               {canActivate ? <th scope="col">Actions</th> : null}
             </tr>
           </thead>
@@ -64,13 +59,9 @@ function RegistryTable({ state, load, canActivate, onActivate }) {
                   <span className="cell-sub">{FRAMEWORK_LABELS[m.framework] || m.framework || NA}{m.feature_count ? ` · ${m.feature_count} features` : ''}</span>
                   <span className="cell-sub">Trained on: {trainingDataSummary(m.provenance)}</span>
                   <span className="cell-sub">Evaluation: {evaluationStatus(m).label}</span>
-                  {evaluationSummary(m.evaluation) ? <span className="cell-sub">{evaluationSummary(m.evaluation)}</span> : null}
                 </td>
                 <td className="mono small ident version-cell"><Breakable text={m.version} /></td>
                 <td className="trained-cell">{when(m.trained_at)}</td>
-                <td className="nowrap">{pct(m.test_metrics?.balanced_accuracy)}</td>
-                <td className="nowrap">{num(m.test_metrics?.f1_macro)}</td>
-                <td className="nowrap">{num(m.test_metrics?.roc_auc)}</td>
                 {canActivate ? (
                   <td className="nowrap">
                     {m.is_active ? <span className="muted small">Active model</span> : (
@@ -85,11 +76,8 @@ function RegistryTable({ state, load, canActivate, onActivate }) {
         </table>
       </div>
       <p className="meta small">
-        Historical columns: segment-level results on each model&apos;s own pre-protocol held-out split, recorded when it
-        was trained. Protocol candidates have no such split; their exploratory leave-one-participant-out summary is shown
-        under the model name instead. “Candidate (inactive)” marks a model trained under the current protocol that has
-        not been activated; it is never used for analyses until an administrator activates it. “{NA}” means the registry
-        holds no such record for that model.
+        “Candidate (inactive)” marks a model that has not been activated; it is never used for analyses until an
+        administrator activates it.
       </p>
     </>
   );
@@ -159,12 +147,10 @@ export default function ModelRegistry({ auth, publicData }) {
   return (
     <>
       <PageHeader title="Model registry" subtitle="Every model version registered on this server, and which one is active." />
-      <Notice tone="warning" title="Historical records, not current performance">
-        The metric columns were recorded when each model was trained, each on its own pre-protocol test split. They are
-        not comparable across models, and they are not current evidence of performance. A higher historical score does
-        not mean a model is better. Under evaluation protocol v1.1, cross-participant estimates were near chance.
-        See <a href={href('/model')}>Model &amp; Evidence</a> for the research results.
-      </Notice>
+      <p className="muted small">
+        This registry holds DEAP models only. The FACED research model is kept separately and can never be activated here.{' '}
+        <a href={href(datasetPath('/model', 'faced'))}>About the FACED model</a>
+      </p>
       <ActivationResult result={result} resultRef={resultRef} />
       <Card title="Registered models" titleId="registered-models" titleRef={headingRef}>
         <RegistryTable state={state} load={load} canActivate={canActivate} onActivate={openDialog} />

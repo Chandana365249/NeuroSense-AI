@@ -2,11 +2,15 @@
 
 **EEG-based estimation of self-reported valence using machine learning, deep learning and explainable AI.** This is an academic research prototype that runs locally on one computer.
 
-NeuroSense AI loads EEG recordings from the DEAP dataset, preprocesses them, extracts spectral features and trains a classifier. It evaluates models only on participants they have never seen, and serves predictions, evaluation results, global feature importance and history through an authenticated FastAPI backend with a React dashboard.
+NeuroSense AI works with two EEG datasets, **DEAP** and **FACED**, kept fully separate: each has its own validated pipeline and its own model, and each is selected explicitly in the app. It evaluates models only on participants they have never seen, and serves predictions, evaluation results, global feature importance and history through an authenticated FastAPI backend with a React dashboard.
+
+**Measured results.** DEAP: exploratory only, 50.0% trial balanced accuracy for a new person and new videos (12 participants, no independent test). FACED: **56.6%** strict held-out trial balanced accuracy for self-reported valence (95% CI 51.8–61.2%). Neither reaches the 80% target, and neither has clinical validity.
 
 > **Not a medical device.** Outputs estimate a *self-reported* valence category (higher or lower than the scale midpoint) from EEG features. They are not a diagnosis of any condition, they do not detect a person's exact emotions, and EEG does not "read thoughts". Cross-participant estimates are near chance (section 7).
 
-**Contents:** [1 Architecture](#1-architecture) · [2 Dataset](#2-dataset-and-data-boundaries) · [3 Labels](#3-labeling-strategy) · [4 Preprocessing](#4-preprocessing-appppreprocessingeeg_preprocessorpy) · [5 Features](#5-feature-extraction-apppreprocessingfeaturespy) · [6 Training](#6-model-training) · [7 Results](#7-evaluation-and-current-results) · [8 Explainability](#8-explainability-global-feature-importance) · [9 Database](#9-database-schema) · [10 API](#10-api) · [11 Authentication](#11-authentication-and-administrator-bootstrap) · [12 Configuration](#12-configuration) · [13 Running locally](#13-running-locally-windows) · [14 Tests and CI](#14-tests-and-continuous-integration) · [15 Troubleshooting](#15-troubleshooting) · [16 Limitations](#16-current-limitations) · [17 Future work](#17-future-work)
+**Presenting the project?** See the [academic demonstration guide](docs/ACADEMIC_DEMONSTRATION_GUIDE.md).
+
+**Contents:** [1 Architecture](#1-architecture) · [2 Dataset](#2-dataset-and-data-boundaries) · [2a FACED](#2a-faced-separate-research-dataset) · [3 Labels](#3-labeling-strategy) · [4 Preprocessing](#4-preprocessing-appppreprocessingeeg_preprocessorpy) · [5 Features](#5-feature-extraction-apppreprocessingfeaturespy) · [6 Training](#6-model-training) · [7 Results](#7-evaluation-and-current-results) · [8 Explainability](#8-explainability-global-feature-importance) · [9 Database](#9-database-schema) · [10 API](#10-api) · [11 Authentication](#11-authentication-and-administrator-bootstrap) · [12 Configuration](#12-configuration) · [13 Running locally](#13-running-locally-windows) · [14 Tests and CI](#14-tests-and-continuous-integration) · [15 Troubleshooting](#15-troubleshooting) · [16 Limitations](#16-current-limitations) · [17 Future work](#17-future-work)
 
 ---
 
@@ -90,6 +94,22 @@ The DEAP data is licensed separately and is **never committed** to the repositor
 - One self-report per 60 s video; all segments of a trial inherit that label.
 - The DEAP preprocessed release is high-passed at 4 Hz with EOG removed, so no delta-band information.
 - A small, non-representative sample.
+
+## 2a. FACED (separate research dataset)
+
+[FACED](https://doi.org/10.1038/s41597-023-02650-w) (NEMAR `nm000112` v1.1.4, CC-BY-4.0): 123 participants, 28 emotional film clips each, self-ratings on a 0–7 scale. The files stay outside the repository; the canonical location is set by `NEUROSENSE_FACED_DATASET_DIR` (on this machine `C:\Users\gandl\Documents\NeuroSense_AI\Dataset\FACED\v1.1.4`).
+
+| | DEAP | FACED |
+|---|---|---|
+| Pipeline | DEAP pipeline, 32 channels, 128 Hz, 440 features | `faced-v2`, 30 shared channels, 250 Hz, 412 features |
+| Label | valence on a 1–9 scale | own valence rating above 3.5 on a 0–7 scale |
+| Model | active Random Forest, in the model registry | `faced-valence-lr_C0.01-S1`, experimental, **not** in the registry and cannot be activated |
+| Prediction route | `POST /api/predict`, stored in History | `POST /api/faced/predict`, stored in History as a FACED record |
+| Evaluation | exploratory, 12 participants | one held-out run: 25 unseen participants × 9 unseen clips (`faced-protocol-v1`) |
+
+**The two are never mixed.** The DEAP route refuses FACED participant IDs, and the FACED route refuses DEAP ones. The FACED route refuses any model whose dataset, pipeline version or feature-schema hash does not match, and it stops if its model is unavailable; the DEAP model is never substituted.
+
+Details: [integration and evaluation](docs/FACED_INTEGRATION_AND_EVALUATION.md), [stimulus-category experiment](docs/FACED_STIMULUS_CATEGORY_EXPERIMENT.md), [noise-removal experiment](docs/FACED_NOISE_REMOVAL_EXPERIMENT.md).
 
 ## 3. Labeling strategy
 
@@ -185,6 +205,16 @@ Pre-protocol leave-one-participant-out CV (9 participants): accuracy **0.510 ± 
 
 Model experimentation on these 12 participants is frozen: the active Random Forest stays, and no experimental candidate is registered or activated.
 
+**FACED, self-reported valence** ([docs/FACED_INTEGRATION_AND_EVALUATION.md](docs/FACED_INTEGRATION_AND_EVALUATION.md)):
+
+| Setting | Model | Trials | Trial balanced accuracy (95% CI) |
+|---|---|---|---|
+| **Strict (primary): unseen people, unseen clips, evaluated once** | Logistic regression | 225 | **0.566** (0.518–0.612) |
+| Unseen people, clips seen in training | Logistic regression | 700 | 0.543 (0.506–0.576) |
+| Strict, with unlabelled per-person calibration | Random Forest | 225 | 0.537 (0.478–0.599) |
+
+Strict accuracy is 0.560 against a majority baseline of 0.556. Mean per-participant balanced accuracy is 0.508 (0.462–0.555). **The 80% target was not reached.** Two exploratory follow-ups did not change this: the intended video category reached 0.558 on known videos, a different task from self-report, and enhanced EEG cleaning did not help (0.498 vs 0.508 on development data).
+
 **Interpretation.** Zero-shot prediction of a new person's valence category is at chance. A model calibrated on a person's own rated videos does better, but it predicts the other participants' consensus for each video equally well, so the signal looks shared and stimulus-related rather than individual. Nothing here supports clinical use, reliable emotion recognition, cross-person generalization or individual-level explanation. Many published DEAP accuracies far above these come from random segment-level splits, which leak each participant's data between train and test.
 
 ## 8. Explainability: global feature importance
@@ -239,10 +269,16 @@ Interactive docs: **http://127.0.0.1:8000/api/docs** (ReDoc at `/api/redoc`).
 | GET | `/api/admin/dataset/summary` | admin | full dataset diagnostics |
 | GET | `/api/dataset/demo-trials` | – | every authorized, readable development participant (never a frozen one) with its actual trial indices and its recorded `model_role` for the active model (`fit`, `selection`, `held_out`, `not_used`, or `unknown` when provenance is unrecorded); input availability is independent of the evaluation split |
 | POST | `/api/predict` | user | predict and store; `{"deap_reference": {...}}` or `{"eeg": {"signal": [[...]], "sampling_rate": 128}}` (add `"synthetic_test_signal": true` for generated test input; it is stored and shown as a synthetic test, never as an estimate) |
-| GET | `/api/predictions[/{id}]` | user | own prediction history |
+| GET | `/api/predictions[/{id}]` | user | own prediction history; the list accepts `dataset` (`deap`, `faced`, `upload`, `synthetic`) and `q` (participant search) |
 | POST/GET | `/api/sessions` | user | analysis sessions |
 | GET | `/api/reports` | admin | training reports, sanitised (no filesystem paths); stored reports are unchanged |
 | GET | `/api/graphs/<file>` | – | evaluation figures |
+| GET | `/api/faced/status` | user | FACED installation, validation and model status; a model that does not match the FACED pipeline is reported as unavailable |
+| GET | `/api/faced/evidence` | user | measured FACED results read from the experiment output files; a missing file is reported as missing |
+| GET | `/api/faced/participants?q=` | user | validated FACED participants, searchable |
+| GET | `/api/faced/participants/{id}/trials` | user | one participant's 28 video trials, with ratings and evaluation status |
+| POST | `/api/faced/predict` | user | run FACED's pipeline and model on one trial and save it to the user's history, with dataset, participant, video, model version, probabilities, time and evaluation provenance (optional `session_id`) |
+| GET | `/api/research/deap-summary` | user | DEAP headline (trial balanced accuracy, 95% CI) read from the saved result file, or `available: false` if it cannot be read |
 
 **Prediction pipeline:**
 1. Validate the input: 32 channels, 128 Hz, at most 120 s.
@@ -356,6 +392,10 @@ Both servers bind to **127.0.0.1 only**, so nothing is reachable from other mach
 
 **Without the DEAP files:** the app still runs. Analyze EEG accepts uploaded JSON, and **Download a synthetic test file** creates a clearly labelled generated signal (noise plus sine rhythms, not EEG) for trying the upload path. Its result is not a meaningful valence estimate.
 
+**Research-only dependencies.** Reproducing the FACED noise-removal experiment needs MNE, which the application does not use: `.venv\Scripts\python -m pip install -r backend\requirements-research.txt`.
+
+**Port checks.** `status.ps1` and `start.ps1` test ports with real connection attempts, because the Windows connection table can omit live listeners. `status.ps1` proves "loopback only" by trying this computer's own network addresses.
+
 ## 14. Tests and continuous integration
 
 ```powershell
@@ -363,7 +403,7 @@ cd backend
 ..\.venv\Scripts\python -m pytest -rs                    # all unit/API/ML tests (synthetic data, temporary SQLite)
 ..\.venv\Scripts\python -m pytest -m integration         # 2 read-only tests on the real DEAP files
 cd ..\frontend
-npm test                                                 # frontend unit tests
+npm test                                                 # frontend unit tests (includes dataset selection and FACED helpers)
 npm run build                                            # production build
 ```
 
@@ -396,7 +436,9 @@ Real-dataset tests are deselected in CI, and the job prints a notice saying so.
 
 ## 16. Current limitations
 
-- Cross-participant estimates are at chance (section 7). The served model is a research baseline, not an emotion recognizer.
+- Cross-participant estimates are at or near chance (section 7). Neither model is an emotion recognizer, and neither has clinical validity.
+- FACED analyses run on recordings already on the server. FACED files cannot be uploaded.
+- The FACED held-out set has now been examined. Any further FACED claim needs a new, untouched test set.
 - 12 participants; no independent test until Decision I is resolved.
 - Protocol candidate training uses one seed. Formal comparisons need five seeds and the protocol §10 criteria.
 - Explainability is global only; there are no per-prediction explanations.

@@ -26,3 +26,7 @@ matplotlib==3.11.2
 # Tests
 pytest==9.1.1
 httpx==0.28.1
+
+# Explainability (TreeSHAP)
+shap==0.54.1
+pandas==3.1.0

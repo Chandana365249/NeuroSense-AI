@@ -42,11 +42,16 @@ _EPS = 1e-12
 
 
 class FeatureExtractor:
-    def __init__(self, sampling_rate: int = 128, channel_names: tuple[str, ...] = EEG_CHANNEL_NAMES) -> None:
+    def __init__(
+        self,
+        sampling_rate: int = 128,
+        channel_names: tuple[str, ...] = EEG_CHANNEL_NAMES,
+        asymmetry_pairs: tuple[tuple[str, str], ...] = ASYMMETRY_PAIRS,
+    ) -> None:
         self.sampling_rate = sampling_rate
         self.channel_names = channel_names
         index = {name: i for i, name in enumerate(channel_names)}
-        self._pairs = [(index[l], index[r], l, r) for l, r in ASYMMETRY_PAIRS if l in index and r in index]
+        self._pairs = [(index[l], index[r], l, r) for l, r in asymmetry_pairs if l in index and r in index]
         self._names = self._build_names()
 
     @property

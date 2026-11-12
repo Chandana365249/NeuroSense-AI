@@ -48,7 +48,10 @@ export const api = {
   demoTrials: () => request('/dataset/demo-trials'),
   datasetSummary: () => request('/dataset/summary'),
   models: () => request('/models'),
-  explainGlobal: (top = 15) => request(`/explain/global?top=${encodeURIComponent(top)}`),
+  explanation: (token, id) => request(`/predictions/${encodeURIComponent(id)}/explanation`, { token }),
+  explainUpload: (token, id, eeg) => request(`/predictions/${encodeURIComponent(id)}/explanation`, { token, method: 'POST', json: { eeg } }),
+  personalEstimate: (token, id) => request(`/predictions/${encodeURIComponent(id)}/personal`, { token, method: 'POST' }),
+  globalExplanation: (token, dataset) => request(`/explain/global/${encodeURIComponent(dataset)}`, { token }),
   // The confirmation and the audit reason travel only in the request body (never in the URL).
   activateModel: (token, version, { confirmVersion, reason }) =>
     request(`/models/${encodeURIComponent(version)}/activate`, {
@@ -56,7 +59,19 @@ export const api = {
     }),
   adminDiagnostics: (token) => request('/admin/diagnostics', { token }),
   predict: (token, payload) => request('/predict', { token, method: 'POST', json: payload }),
-  predictions: (token, { limit = 20, offset = 0 } = {}) =>
-    request(`/predictions?limit=${limit}&offset=${offset}`, { token }),
+  // FACED: a separate dataset with its own pipeline and model (never the DEAP model); results are not stored.
+  deapResearchSummary: (token) => request('/research/deap-summary', { token }),
+  facedStatus: (token) => request('/faced/status', { token }),
+  facedEvidence: (token) => request('/faced/evidence', { token }),
+  facedParticipants: (token) => request('/faced/participants', { token }),
+  facedTrials: (token, participantId) => request(`/faced/participants/${encodeURIComponent(participantId)}/trials`, { token }),
+  facedPredict: (token, participantId, videoIndex) =>
+    request('/faced/predict', { token, method: 'POST', json: { participant_id: participantId, video_index: videoIndex } }),
+  predictions: (token, { limit = 20, offset = 0, dataset = '', q = '' } = {}) => {
+    const query = new URLSearchParams({ limit, offset });
+    if (dataset) query.set('dataset', dataset);
+    if (q) query.set('q', q);
+    return request(`/predictions?${query}`, { token });
+  },
   prediction: (token, id) => request(`/predictions/${encodeURIComponent(id)}`, { token }),
 };

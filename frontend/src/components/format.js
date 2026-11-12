@@ -18,13 +18,6 @@ export const classLabel = (c) => (c ? CLASS_LABELS[c] || c : NA);
 export const algorithmLabel = (a) => (a ? ALGORITHM_LABELS[a] || a : NA);
 export const pct = (v) => (typeof v === 'number' ? `${(v * 100).toFixed(1)}%` : NA);
 export const num = (v, d = 3) => (typeof v === 'number' ? v.toFixed(d) : NA);
-/** One-line summary of a protocol candidate's exploratory evaluation, or null. */
-export function evaluationSummary(evaluation) {
-  const ba = evaluation?.aggregate?.trial_balanced_accuracy;
-  if (!evaluation || ba?.mean == null) return null;
-  return `Exploratory LOPO, Protocol v${evaluation.protocol_version}: trial balanced accuracy ${pct(ba.mean)} ± ${pct(ba.sd_sample)} `
-    + `(${evaluation.n_participants} participants)`;
-}
 export const when = (iso) => (iso ? new Date(iso).toLocaleString() : NA);
 
 export { sourceText as sourceLabel } from '../analysis.js';
@@ -38,10 +31,6 @@ export function predictionLabel(p) {
 export const VALENCE_EXPLANATION =
   'Valence is how pleasant a participant rated a music video, on a 1–9 scale, once after each one-minute trial. '
   + 'Ratings above 5 are classed as higher self-reported valence; 5 or below as lower self-reported valence.';
-
-export const RELIABILITY_NOTE =
-  'Research prototype: cross-participant estimates were near chance in our exploratory evaluations. '
-  + "Treat predictions as experimental, not as a reliable measurement of an individual's emotional experience.";
 
 // ---------- global feature importance ----------
 const BAND_NAMES = { theta: 'theta', alpha: 'alpha', beta: 'beta', gamma: 'gamma' };

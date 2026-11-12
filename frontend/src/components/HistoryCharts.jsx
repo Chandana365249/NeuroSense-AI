@@ -1,12 +1,13 @@
 // Charts of the signed-in user's saved analyses. Loaded lazily so Chart.js is only downloaded on History.
 import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Tooltip } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import { datasetKind } from '../analysis';
 import { CLASS_LABELS } from './format';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 const CATEGORIES = ['high_valence', 'low_valence'];
-const SOURCES = [['deap_reference', 'DEAP trials'], ['upload', 'Uploaded files'], ['synthetic', 'Synthetic tests']];
+const SOURCES = [['deap', 'DEAP trials'], ['faced', 'FACED trials'], ['upload', 'Uploaded files'], ['synthetic', 'Synthetic tests']];
 const PROB_BINS = [[0.5, 0.6], [0.6, 0.7], [0.7, 0.8], [0.8, 0.9], [0.9, 1.0001]];
 const DAY_WINDOW = 30;
 
@@ -43,8 +44,7 @@ export function summarise(items) {
   const days = new Map();
   let latest = null;
   for (const p of items) {
-    const src = p.input_source === 'deap_reference' ? 'deap_reference'
-      : p.source_reference?.synthetic_test_signal ? 'synthetic' : 'upload';
+    const src = datasetKind(p);
     if (byCategory[src][p.prediction] !== undefined) byCategory[src][p.prediction] += 1;
     // Synthetic tests carry no information about valence, so their scores are left out of the probability chart.
     const i = src === 'synthetic' ? -2 : PROB_BINS.findIndex(([lo, hi]) => p.confidence >= lo && p.confidence < hi);
@@ -119,7 +119,7 @@ export default function HistoryCharts({ items }) {
       </ChartFigure>
 
       <ChartFigure id="chart-probability" title="Model probability of the estimated category"
-        description="Model probability is the model's own output, not a measure of accuracy. Synthetic tests are not included."
+        description="Model probability is the model's own output, not a certainty. Synthetic tests are not included."
         table={<DataTable caption="Model probability distribution" head={['Model probability', 'Analyses']}
           rows={[...binLabels.map((l, i) => [l, s.bins[i]]), ...(s.belowHalf ? [['Below 50%', s.belowHalf]] : [])]} />}>
         <Bar role="img" aria-label={`Histogram. ${binLabels.map((l, i) => `${l}: ${s.bins[i]}`).join(', ')}.`}

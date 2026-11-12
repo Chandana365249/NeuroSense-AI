@@ -1,0 +1,5 @@
+# Research-only extras, needed to reproduce the FACED noise-removal experiment
+# (scripts/faced_cleaning_experiment.py, docs/FACED_NOISE_REMOVAL_EXPERIMENT.md).
+# The application does not use MNE, so it is deliberately not in requirements.txt. Install after requirements.txt.
+-r requirements.txt
+mne==1.13.2

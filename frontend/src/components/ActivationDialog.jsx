@@ -3,7 +3,7 @@ import { api } from '../api';
 import Notice from './Notice';
 import { failureMessage, fieldErrorsFrom, REASON_MAX, REASON_MIN, validate } from '../activationRules';
 import { heldOutSummary, NOT_RECORDED, trainingDataSummary } from '../modelInfo';
-import { algorithmLabel, evaluationSummary, NA, num, pct, when } from './format';
+import { algorithmLabel, when } from './format';
 
 export { REASON_MAX, REASON_MIN };
 
@@ -42,7 +42,6 @@ export default function ActivationDialog({ model, activeVersion, auth, onCancel,
 
   const errors = submitted ? { ...validate(model.version, confirm, reason), ...serverErrors } : serverErrors;
   const trimmed = reason.trim().length;
-  const m = model.test_metrics || {};
 
   async function submit(event) {
     event.preventDefault();
@@ -96,22 +95,6 @@ export default function ActivationDialog({ model, activeVersion, auth, onCancel,
           <dt>Held out</dt><dd>{heldOutSummary(model.provenance) ?? NOT_RECORDED}</dd>
         </dl>
 
-        <section className="dialog-section" aria-labelledby={`${id}-hist`}>
-          <h3 id={`${id}-hist`}>Historical pre-protocol metrics</h3>
-          <p className="small muted">
-            Recorded when this model was trained, on its own pre-protocol test split. They are not comparable across
-            models, and a higher historical score is not evidence that this model is better than the active one.
-          </p>
-          <dl className="kv kv-compact">
-            <dt>Balanced accuracy</dt><dd>{m.balanced_accuracy == null ? NA : pct(m.balanced_accuracy)}</dd>
-            <dt>Macro-F1</dt><dd>{m.f1_macro == null ? NA : num(m.f1_macro)}</dd>
-            <dt>ROC-AUC</dt><dd>{m.roc_auc == null ? NA : num(m.roc_auc)}</dd>
-          </dl>
-          {evaluationSummary(model.evaluation) ? (
-            <p className="small">{evaluationSummary(model.evaluation)}. Exploratory, development participants only; not an
-              independent test result.</p>
-          ) : null}
-        </section>
 
         <div className="field">
           <label htmlFor={`${id}-confirm`}>Type the version to confirm</label>

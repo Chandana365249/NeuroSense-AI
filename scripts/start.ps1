@@ -24,8 +24,15 @@ $FrontendDir = Join-Path $Root 'frontend'
 $EnvFile = Join-Path $BackendDir '.env'
 $problems = New-Object System.Collections.Generic.List[string]
 
+function Test-Connect([string]$Address, [int]$Port) {
+    # A real connection attempt. The Windows connection table can omit live listeners, so it is not relied on alone.
+    $client = New-Object System.Net.Sockets.TcpClient
+    try { return ($client.ConnectAsync($Address, $Port).Wait(1500) -and $client.Connected) } catch { return $false } finally { $client.Close() }
+}
+
 function Test-PortFree([int]$Port) {
-    return -not (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
+    if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) { return $false }
+    return -not (Test-Connect '127.0.0.1' $Port)
 }
 
 function Wait-Http([string]$Url, [int]$Seconds) {

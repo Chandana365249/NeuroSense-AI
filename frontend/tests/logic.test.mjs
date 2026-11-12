@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { failureMessage, fieldErrorsFrom, REASON_MAX, REASON_MIN, validate } from '../src/activationRules.js';
-import { classLabel, evaluationSummary, featureLabel, NA, num, pct } from '../src/components/format.js';
+import { classLabel, featureLabel, NA, num, pct } from '../src/components/format.js';
 import { makeSyntheticSignal, SYNTHETIC_FILE_NAME } from '../src/synthetic.js';
 
 // ---------- activation dialog rules ----------
@@ -59,15 +59,6 @@ test('format: approved labels and missing values', () => {
   assert.equal(num(0.5), '0.500');
   assert.equal(pct(null), NA);
   assert.equal(num(undefined), NA);
-});
-
-test('format: protocol evaluation summary is labelled exploratory', () => {
-  const evaluation = { protocol_version: '1.1', n_participants: 12,
-    aggregate: { trial_balanced_accuracy: { mean: 0.512, sd_sample: 0.061 } } };
-  assert.equal(evaluationSummary(evaluation),
-    'Exploratory LOPO, Protocol v1.1: trial balanced accuracy 51.2% ± 6.1% (12 participants)');
-  assert.equal(evaluationSummary(null), null);
-  assert.equal(evaluationSummary({ aggregate: {} }), null);
 });
 
 test('format: feature labels', () => {

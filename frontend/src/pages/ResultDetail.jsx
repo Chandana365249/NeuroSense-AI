@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { api } from '../api';
 import Card from '../components/Card';
 import LoadingBlock from '../components/LoadingBlock';
@@ -6,17 +6,21 @@ import Notice from '../components/Notice';
 import PageHeader from '../components/PageHeader';
 import RequireAuth from '../components/RequireAuth';
 import ResultPanel from '../components/ResultPanel';
-import { RELIABILITY_NOTE } from '../components/format';
+import { datasetPath } from '../datasets';
 import { href } from '../router';
+import { explainable } from '../xai';
 
-function Detail({ auth, id }) {
+const TrialInsights = lazy(() => import('../components/TrialInsights'));
+
+function Detail({ auth, id, onLoaded }) {
   const [state, setState] = useState({ status: 'loading' });
+  const [calibrated, setCalibrated] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     setState({ status: 'loading' });
     api.prediction(auth.token, id)
-      .then((data) => { if (!cancelled) setState({ status: 'ready', data }); })
+      .then((data) => { if (!cancelled) { setState({ status: 'ready', data }); onLoaded(data); } })
       .catch((err) => {
         if (cancelled) return;
         if (err.status === 401) auth.expire();
@@ -32,25 +36,29 @@ function Detail({ auth, id }) {
       : <Notice tone="error" title="Could not load the result">{state.error}</Notice>;
   }
   return (
-    <Card>
-      <ResultPanel prediction={state.data} />
-      {state.data.input_source === 'upload' ? (
-        <p className="meta small">The uploaded signal itself is not stored, so its waveform preview is only shown at upload time.</p>
+    <>
+      <Card>
+        <ResultPanel prediction={state.data} calibrated={calibrated} />
+      </Card>
+      {explainable(state.data) ? (
+        <Suspense fallback={<LoadingBlock label="Loading charts…" />}>
+          <TrialInsights auth={auth} predictionId={state.data.prediction_id} inputSource={state.data.input_source} onAffect={setCalibrated} />
+        </Suspense>
       ) : null}
-    </Card>
+    </>
   );
 }
 
 export default function ResultDetail({ auth, id }) {
+  const [dataset, setDataset] = useState('');
   return (
     <>
       <PageHeader title={`Result #${id}`} subtitle="One saved analysis.">
         <a className="btn btn-secondary btn-small" href={href('/history')}>Back to history</a>
-        <a className="btn btn-primary btn-small" href={href('/analyze')}>New analysis</a>
+        <a className="btn btn-primary btn-small" href={href(dataset ? datasetPath('/analyze', dataset) : '/analyze')}>New analysis</a>
       </PageHeader>
-      <Notice tone="warning" title="Reliability">{RELIABILITY_NOTE}</Notice>
       <RequireAuth auth={auth} reason="Sign in to view this result.">
-        <Detail auth={auth} id={id} />
+        <Detail auth={auth} id={id} onLoaded={(p) => { if (p.input_source === 'faced_reference') setDataset('faced'); }} />
       </RequireAuth>
     </>
   );

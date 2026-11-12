@@ -5,12 +5,13 @@ import { href } from '../router';
 const PRIMARY = [
   { path: '/overview', label: 'Overview' },
   { path: '/analyze', label: 'Analyze EEG' },
+  { path: '/dashboard', label: 'Dashboard' },
   { path: '/history', label: 'History' },
 ];
 
 // Secondary research tools: read-only evidence and reference pages.
 const RESEARCH = [
-  { path: '/model', label: 'Model & Evidence' },
+  { path: '/model', label: 'Models' },
   { path: '/dataset', label: 'Dataset' },
   { path: '/models', label: 'Model registry' },
 ];
@@ -60,7 +61,7 @@ export default function Sidebar({ id, open, currentPath, auth }) {
         <span className="brand-mark" aria-hidden="true" />
         <div>
           <span className="brand-name">NeuroSense AI</span>
-          <span className="brand-tag">Self-reported valence estimation from EEG · research prototype</span>
+          <span className="brand-tag">EEG emotion estimation with explainable AI</span>
         </div>
       </div>
 

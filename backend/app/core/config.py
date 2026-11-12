@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     # Paths (relative paths are resolved against the project root)
     dataset_dir: Path = Path("Dataset/DEAP")
     output_dir: Path = Path("outputs")
+    research_results_dir: Path = Path("docs/results")  # saved, version-controlled research results (read-only)
+    # FACED (NEMAR nm000112 v1.1.4) BIDS folder; a separate dataset with its own pipeline and models.
+    faced_dataset_dir: Path = Path("Dataset/FACED/v1.1.4")
+    # Optional: serve the built frontend (frontend/dist) from the API server, for a single-container deployment.
+    frontend_dist_dir: Path | None = None
 
     # Database
     database_url: str = "postgresql+psycopg://neurosense:neurosense@localhost:5432/neurosense"
@@ -72,10 +77,14 @@ class Settings(BaseSettings):
             raise ValueError("development_participants must not include frozen final-test participants")
         return sorted(set(value))
 
-    @field_validator("dataset_dir", "output_dir")
+    @field_validator("dataset_dir", "output_dir", "faced_dataset_dir", "research_results_dir")
     @classmethod
     def _resolve(cls, value: Path) -> Path:
         return value if value.is_absolute() else (PROJECT_ROOT / value).resolve()
+
+    @property
+    def faced_output_dir(self) -> Path:
+        return self.output_dir / "faced"
 
     @property
     def model_dir(self) -> Path:

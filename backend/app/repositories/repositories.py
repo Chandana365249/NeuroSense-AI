@@ -4,7 +4,7 @@ import math
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import AnalysisSession, AuditLog, Metric, MLModel, Prediction, Report, User
@@ -158,17 +158,41 @@ class PredictionRepository:
     def get_for_user(self, prediction_id: int, user_id: int) -> Prediction | None:
         return self.db.scalar(select(Prediction).where(Prediction.id == prediction_id, Prediction.user_id == user_id))
 
-    def list_for_user(self, user_id: int, limit: int, offset: int, session_id: int | None = None) -> list[Prediction]:
-        stmt = select(Prediction).where(Prediction.user_id == user_id)
+    @staticmethod
+    def _filters(user_id: int, session_id: int | None, dataset: str | None, query: str | None) -> list[Any]:
+        """The WHERE conditions shared by the list and its count. Every condition is scoped to the user."""
+        conditions: list[Any] = [Prediction.user_id == user_id]
         if session_id is not None:
-            stmt = stmt.where(Prediction.session_id == session_id)
+            conditions.append(Prediction.session_id == session_id)
+        synthetic = func.coalesce(Prediction.source_reference["synthetic_test_signal"].as_boolean(), False)
+        if dataset == "deap":
+            conditions.append(Prediction.input_source == "deap_reference")
+        elif dataset == "faced":
+            conditions.append(Prediction.input_source == "faced_reference")
+        elif dataset == "synthetic":
+            conditions.extend([Prediction.input_source == "upload", synthetic.is_(True)])
+        elif dataset == "upload":
+            conditions.extend([Prediction.input_source == "upload", synthetic.is_(False)])
+        q = (query or "").strip()
+        if q:
+            participant = Prediction.source_reference["participant_id"].as_string()
+            matches = [participant.icontains(q, autoescape=True)]
+            digits = q.lower().removeprefix("sub-").removeprefix("s")
+            if digits.isdecimal() and len(digits) <= 3:  # 7 finds s07 and sub-007, as participant search does elsewhere
+                number = int(digits)
+                matches.append(participant.in_([f"s{number:02d}", f"sub-{number:03d}"]))
+            conditions.append(or_(*matches))
+        return conditions
+
+    def list_for_user(self, user_id: int, limit: int, offset: int, session_id: int | None = None,
+                      dataset: str | None = None, query: str | None = None) -> list[Prediction]:
+        stmt = select(Prediction).where(*self._filters(user_id, session_id, dataset, query))
         stmt = stmt.order_by(Prediction.created_at.desc(), Prediction.id.desc()).limit(limit).offset(offset)
         return list(self.db.scalars(stmt))
 
-    def count_for_user(self, user_id: int, session_id: int | None = None) -> int:
-        stmt = select(func.count(Prediction.id)).where(Prediction.user_id == user_id)
-        if session_id is not None:
-            stmt = stmt.where(Prediction.session_id == session_id)
+    def count_for_user(self, user_id: int, session_id: int | None = None, dataset: str | None = None,
+                       query: str | None = None) -> int:
+        stmt = select(func.count(Prediction.id)).where(*self._filters(user_id, session_id, dataset, query))
         return int(self.db.scalar(stmt) or 0)
 
 

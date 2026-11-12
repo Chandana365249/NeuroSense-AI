@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { demoOptions, resultContext, roleNotice, sourceText, trialLabel, validateUpload } from '../src/analysis.js';
+import { dashboardSummary, demoOptions, resultContext, roleNotice, sourceText, trialLabel, validateUpload } from '../src/analysis.js';
 import { authFailureMessage, localErrors } from '../src/authRules.js';
 import { predictionLabel, sourceLabel } from '../src/components/format.js';
 import { evaluationStatus, heldOutSummary, modelStatusLabel, NOT_RECORDED, trainingDataSummary } from '../src/modelInfo.js';
@@ -180,4 +180,19 @@ test('sign-in: failures get understandable messages', () => {
   assert.match(authFailureMessage({ status: 0 }, 'login'), /unreachable/);
   assert.match(authFailureMessage({ status: 409 }, 'register'), /already exists/);
   assert.match(authFailureMessage({ status: 429 }, 'login'), /Too many attempts/);
+});
+
+test('dashboard summary counts each input type and keeps synthetic tests out of the estimates', () => {
+  const items = [
+    { input_source: 'deap_reference', prediction: 'high_valence', created_at: '2026-11-01T10:00:00Z' },
+    { input_source: 'faced_reference', prediction: 'low_valence', created_at: '2026-11-03T10:00:00Z' },
+    { input_source: 'upload', source_reference: {}, prediction: 'high_valence', created_at: '2026-11-02T10:00:00Z' },
+    { input_source: 'upload', source_reference: { synthetic_test_signal: true }, prediction: 'high_valence', created_at: '2026-11-04T10:00:00Z' },
+  ];
+  const s = dashboardSummary(items);
+  assert.deepEqual(s.counts, { deap: 1, faced: 1, upload: 1, synthetic: 1 });
+  assert.equal(s.total, 4);
+  assert.equal(s.higher, 2);
+  assert.equal(s.lower, 1);
+  assert.equal(s.latest.toISOString(), '2026-11-04T10:00:00.000Z');
 });

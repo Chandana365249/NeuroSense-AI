@@ -1,5 +1,6 @@
 // Pure logic for the Analyze EEG workflow. Every participant, trial and requirement shown comes from the API
 // (GET /dataset/demo-trials and GET /model-info); nothing here substitutes values when the API has none.
+import { STATUS_SHORT, STATUS_TONE } from './faced.js';
 
 /** Human trial label. DEAP stores trials by zero-based index; people count from 1, so both are shown. */
 export const trialLabel = (index) => `Trial ${index + 1} (index ${index})`;
@@ -103,8 +104,17 @@ export function validateUpload(parsed, requirements, baselineSeconds = 0) {
   };
 }
 
+/** Which kind of record a stored prediction is. Only these four exist, and they are never mixed up in lists. */
+export function datasetKind(p) {
+  if (p?.input_source === 'deap_reference') return 'deap';
+  if (p?.input_source === 'faced_reference') return 'faced';
+  return p?.source_reference?.synthetic_test_signal ? 'synthetic' : 'upload';
+}
+
+export const DATASET_LABELS = { deap: 'DEAP', faced: 'FACED', upload: 'Uploaded file', synthetic: 'Synthetic test' };
+
 /**
- * How to read a stored result. kind: 'synthetic' | 'deap' | 'upload'.
+ * How to read a stored result. kind: 'synthetic' | 'deap' | 'faced' | 'upload'.
  * fairness (DEAP only): 'unseen' | 'trained' | 'unknown', from the participant's recorded role for that model.
  */
 export function resultContext(prediction) {
@@ -118,6 +128,12 @@ export function resultContext(prediction) {
     const fairness = { in_sample: 'trained', held_out: 'held_out' }[notice.kind] || 'unknown';
     return { kind: 'deap', fairness, notice, summary: notice.text };
   }
+  if (prediction?.input_source === 'faced_reference') {
+    const status = ref.evaluation_status;
+    const notice = { tone: STATUS_TONE[status] === 'ok' ? 'info' : 'warning', title: STATUS_SHORT[status] || 'Evaluation status not recorded',
+      text: ref.evaluation_text || 'This record does not state how the recording relates to the model\'s training data.' };
+    return { kind: 'faced', fairness: null, notice, summary: notice.text };
+  }
   return { kind: 'upload', fairness: null, notice: null, summary: 'Your uploaded recording.' };
 }
 
@@ -125,6 +141,7 @@ export function resultContext(prediction) {
 export function sourceText(p) {
   const ref = p?.source_reference;
   if (p?.input_source === 'deap_reference' && ref) return `DEAP ${ref.participant_id} · ${trialLabel(ref.trial_index)}`;
+  if (p?.input_source === 'faced_reference' && ref) return `FACED ${ref.participant_id} · Video ${ref.video_index}`;
   if (p?.input_source === 'upload' && ref?.synthetic_test_signal) return 'Synthetic test signal';
   return 'Uploaded EEG file';
 }
@@ -149,7 +166,7 @@ export function selectionKey(source, { deap, upload, synthetic } = {}) {
 export function visibleOutcome(state, currentKey) {
   if (state?.pending && state.pending === currentKey) return { kind: 'loading' };
   if (state?.error && state.error.key === currentKey) return { kind: 'error', message: state.error.message };
-  if (state?.result && state.result.key === currentKey) return { kind: 'result', prediction: state.result.prediction };
+  if (state?.result && state.result.key === currentKey) return { kind: 'result', prediction: state.result.prediction, eeg: state.result.eeg || null };
   return { kind: 'empty' };
 }
 
@@ -158,3 +175,17 @@ export const SYNTHETIC_DONE_MESSAGE = 'Synthetic pipeline test completed. This o
 
 /** True for a stored result of the app's generated synthetic test signal. */
 export const isSynthetic = (p) => p?.input_source === 'upload' && p?.source_reference?.synthetic_test_signal === true;
+
+/** Counts for the summary tiles: totals per input type and the time of the latest analysis. */
+export function dashboardSummary(items) {
+  const counts = { deap: 0, faced: 0, upload: 0, synthetic: 0 };
+  let latest = null;
+  for (const p of items) {
+    counts[datasetKind(p)] += 1;
+    const d = new Date(p.created_at);
+    if (!Number.isNaN(d.getTime()) && (!latest || d > latest)) latest = d;
+  }
+  const real = items.filter((p) => !isSynthetic(p));
+  const higher = real.filter((p) => p.prediction === 'high_valence').length;
+  return { total: items.length, counts, latest, real: real.length, higher, lower: real.length - higher };
+}

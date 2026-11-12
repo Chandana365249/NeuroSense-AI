@@ -24,6 +24,13 @@ outputs/graphs/*
 outputs/metrics/*
 !outputs/metrics/dataset_summary.json
 outputs/experiments/*
+outputs/faced/
+outputs/affect/
+# Uploaded EEG signals are private user data; never commit them
+outputs/uploads/
+
+# Deployment bundle assembled by backend/scripts/make_deploy_bundle.py
+deploy/
 
 # Local run state written by scripts/start.ps1 (PIDs, logs)
 .run/

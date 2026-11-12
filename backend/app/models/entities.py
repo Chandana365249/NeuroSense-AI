@@ -90,7 +90,7 @@ class Prediction(Base):
     probabilities: Mapped[dict[str, float]] = mapped_column(JSON)
     segments_used: Mapped[int] = mapped_column(Integer)
     segments_rejected: Mapped[int] = mapped_column(Integer, default=0)
-    input_source: Mapped[str] = mapped_column(String(30))  # upload | deap_reference
+    input_source: Mapped[str] = mapped_column(String(30))  # upload | deap_reference | faced_reference
     source_reference: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
 

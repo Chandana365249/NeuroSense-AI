@@ -303,3 +303,149 @@ The browser suites are scratch harnesses outside the repository. The repository'
 | PostgreSQL, active pointer and model files preserved | PASS |
 | Frozen-participant evaluation | **BLOCKED** (Decision I) |
 | Commit and push (no force); GitHub Actions verified | PASS after one fix: the first CI run on `f5ed95c` failed in the backend job. Five research test modules imported `git_commit` from the torch-based module, and the CI backend job has no torch. The helper now lives in the torch-free `app/ml/provenance.py` and is re-exported from the old path. See the delivery message for the final run. |
+
+## 15. Research application completion (2026-10-30)
+
+The application now presents DEAP and FACED as two separate datasets, each with its own pipeline, model and evidence. No
+model was trained, activated or registered in this phase.
+
+### 15.1 What changed
+
+| Area | Result |
+|---|---|
+| Dataset selection | Analyze EEG, Dataset and Model & Evidence share one dataset choice. It is kept in the URL, survives a reload and can be linked. Arrow keys move between the tabs. |
+| Participant directory | FACED: search by number or original ID, with 28 recordings per participant, each with its rating and evaluation status. DEAP: search on both Analyze and Dataset. Directory links open Analyze with that selection made. |
+| Analysis | FACED analysis moved into Analyze EEG. Each dataset shows its dataset, pipeline and model before anything runs. |
+| Interpretation | FACED results now include "How to read this": whether the probability is undecided, what the estimate does and does not mean, the measured accuracy, and no clinical meaning. |
+| Evidence | New FACED evidence tab, read from the result files: held-out result, confusion matrix, per-participant results, all settings, model selection, exploratory follow-ups and limitations. DEAP gained the later findings (§9a, §9b, the leakage demonstration) and a limitations card. |
+| Overview | Shows both datasets' measured results, and says they cannot be compared directly. |
+| Compatibility | The FACED route now refuses a model whose dataset, pipeline version or feature-schema hash does not match, and reports it as unavailable. Previously only the feature count and pipeline version were checked, after the signal had been processed. The hash in the model card was never verified. |
+| Registry | States that it holds DEAP models only. |
+| Documentation | `ACADEMIC_DEMONSTRATION_GUIDE.md` is new. README, FACED integration report and this report are updated. |
+
+### 15.2 Verification (final build)
+
+| Check | Result |
+|---|---|
+| Backend `python -m pytest` | **266 passed**, 2 integration tests deselected, then run separately: 2 passed |
+| Frontend `npm test` | **45 / 45 passed** |
+| Production build `npx vite build` | succeeded |
+| Researcher workflow in real headless Edge (production build, isolated backend, scratch SQLite) | **41 / 41 passed** |
+| DEAP acceptance suite in real Edge | **37 / 37 passed** |
+| DEAP end-to-end suite in real Edge | **82 / 82 passed** |
+| `git diff --check` | clean |
+| 70 hashed production files, including the DEAP registry | unchanged |
+| Active model | `valence_binary-random_forest-20261008-180558`, unchanged |
+| Production PostgreSQL (read-only snapshot of all tables) | unchanged |
+| Existing FACED models and result files | unchanged |
+| Canonical dataset `Dataset\FACED\v1.1.4` | present, 766 files |
+
+The workflow suite checks, among other things, that a FACED analysis calls only `/api/faced/predict`, a DEAP analysis calls
+only `/api/predict`, and only the DEAP analysis is stored. It also checks that switching dataset removes the FACED result
+and that the confusion matrix on screen equals the result file. `FacedService` was also run once against the real
+configuration: it served the evidence and a prediction for one real recording, with no database access.
+
+### 15.3 Not verified
+
+- The running application was **not** exercised against production PostgreSQL. Signing in writes to that database, and
+  this phase forbids modifying it. All browser runs used an isolated scratch database.
+- `scripts\start.ps1`, the route the demonstration guide uses, was not run in this phase for the same reason. **Verified
+  in section 16.**
+
+### 15.4 Remaining defects and limits
+
+| Item | Status |
+|---|---|
+| FACED analyses are not saved to History | **Resolved in section 16.** |
+| FACED recordings cannot be uploaded | Only recordings on the server can be analyzed. |
+| The DEAP figure on Overview (50.0%) is a static value from the research findings | **Resolved in section 16.** |
+| Final independent DEAP evaluation | Still **BLOCKED** on Decision I (see 14.4). |
+| FACED held-out set | Already examined. A further FACED claim needs a new, untouched test set. |
+| MNE | **Resolved in section 16** (`requirements-research.txt`). |
+| All work in this phase | Uncommitted, as instructed. |
+
+## 16. Final functional completion (2026-10-31)
+
+No model was trained, activated or registered. The evaluation protocol, research results and datasets are unchanged.
+
+### 16.1 Completed
+
+| Area | Result |
+|---|---|
+| FACED history | FACED analyses are saved with dataset identity, participant, video, model version, pipeline, probabilities, time and evaluation provenance (status, protocol, split hash, the model's strict held-out score), plus the participant's rating. |
+| No schema change | Records use the existing `predictions` table (`input_source = faced_reference`, details in `source_reference`, `model_id` empty because the FACED model is not in the registry). **No migration is needed.** |
+| History | Dataset filter (DEAP, FACED, Uploaded file, Synthetic test) and participant search, on the server, for the table and the charts. Each row shows its dataset. Charts count FACED separately; before this fix they would have counted it as an upload. |
+| Synthetic records | Still never shown as an estimate: no category or probability in lists, charts or detail. |
+| Sourced DEAP metrics | The fixed 50.0% and its interval on Overview are gone. `GET /api/research/deap-summary` reads `docs/results/exploratory/cross_participant_lvo_rf/summary.json`: trial balanced accuracy 0.5005, 95% t-interval 0.4809–0.5201, 12 participants, 5 seeds. If the file cannot be read, Overview and DEAP evidence say so and show no number. The "neither reaches 80%" sentence appears only when both figures are available and below 80%. |
+| Windows scripts | Tested on an isolated database and on the real configuration (see 16.3). |
+| **Defect found and fixed** | `status.ps1` could report "not running" for a working app, and `start.ps1` could treat a busy port as free. On this PC the Windows connection table omits live listeners. Both scripts now test ports by connecting, and `status.ps1` proves "loopback only" by trying the computer's network addresses. |
+| Research dependencies | `backend/requirements-research.txt` pins `mne==1.13.2`. MNE is not in `requirements.txt`. |
+| Demonstration guide | Exact start, sign-in, stop and troubleshooting steps. |
+
+### 16.2 Test counts (final build)
+
+| Check | Result |
+|---|---|
+| Backend `python -m pytest` | **270 passed, 2 deselected**, then the 2 real-DEAP integration tests run separately: 2 passed |
+| Frontend `npm test` | **48 / 48 passed** |
+| Production build | succeeded |
+| Researcher workflow and History in real Edge, desktop and 375 px | **58 / 58 passed** |
+| DEAP acceptance suite in real Edge | **37 / 37 passed** |
+| DEAP end-to-end suite in real Edge | **82 / 82 passed** |
+| `git diff --check` | clean |
+
+All browser runs used an isolated scratch database. The new history tests cover persistence, retrieval, analysis-session
+separation, access between users (404) and without sign-in (401), filters, search and unavailable result files. The new
+filter queries were also run on real PostgreSQL in a read-only transaction, because automated tests use SQLite.
+
+One acceptance check ("Invalid stored session") failed once, did not reproduce in a focused test where the notice appeared
+within 0.5 s, and passed in the final full run. The cause was not established; timing under load is the likely explanation.
+
+### 16.3 Startup and shutdown
+
+`start.ps1`, `status.ps1` and `stop.ps1` were each run for real: **19 / 19 checks on an isolated database, and 19 / 19 on
+the real configuration.** The checks cover:
+
+- both services start, answer on 127.0.0.1, and cannot be reached on the computer's network address;
+- the frontend reaches the backend through its proxy;
+- `status.ps1` is accurate while running and after stopping;
+- a second `start.ps1` refuses and disturbs nothing;
+- `stop.ps1` leaves no child process or PID file behind;
+- with a stale PID file pointing at an unrelated program, that program is left alone. Separate unrelated Python and Node
+  processes survived every step.
+
+Before the real-configuration run, the startup registry sync was run in a read-only PostgreSQL transaction: it visited 6
+models and changed nothing. The real run involved no sign-in or analysis.
+
+### 16.4 Production state
+
+| Item | Result |
+|---|---|
+| 70 hashed production files, including the DEAP registry | unchanged |
+| Active model | `valence_binary-random_forest-20261008-180558`, unchanged |
+| Production PostgreSQL, before and after the real-configuration run | unchanged (read-only checksums of all tables, including metrics; no write transaction) |
+| Existing FACED models and result files | unchanged |
+
+### 16.5 Limitations
+
+- **A browser sign-in and analysis against the real database was not run**, because it would write to it. FACED saving is
+  verified on scratch databases, and its queries on PostgreSQL read-only. Rehearse once before presenting; that rehearsal
+  will add your sign-in and analyses to the real database, as normal use does.
+- A FACED analysis whose response arrives after the user has changed selection is not displayed, but it is still saved.
+  That matches what ran on the server, and it appears in History.
+- The research summary on DEAP evidence remains a static, labelled text. Only the headline above it is read from a file.
+  The result page's general wording ("close to chance, about 50%") is also fixed text.
+- The DEAP figure is read from `docs/results/`, a version-controlled copy of the experiment output.
+- On a 375 px screen the History table scrolls sideways to reach the Dataset column. The Input column still names the dataset.
+- `start.ps1` must be run in a terminal. If a program captures its output through a pipe, that program can wait on the
+  running servers. This does not affect normal use.
+- The FACED held-out set has been examined, so a new FACED claim needs a new, untouched test set.
+
+### 16.6 Remaining research dependencies
+
+- **Final independent DEAP evaluation:** blocked on Decision I (official DEAP data access). The eight frozen participants
+  remain unused.
+- **Any new FACED claim:** needs a new, untouched test set and a protocol declared in advance.
+- **The 80% target:** not reached under any valid evaluation. Nothing in this application claims it.
+
+All work in this phase is uncommitted, as instructed.

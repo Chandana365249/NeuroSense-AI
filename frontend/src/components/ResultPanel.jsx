@@ -2,7 +2,7 @@ import { resultContext, SYNTHETIC_DONE_MESSAGE } from '../analysis';
 import { href } from '../router';
 import { classLabel, sourceLabel, when } from './format';
 import Notice from './Notice';
-import ProbabilityBars from './ProbabilityBars';
+import ScoreGauge from './ScoreGauge';
 import Stat from './Stat';
 
 const CLASS_MEANING = {
@@ -39,7 +39,7 @@ function SyntheticResult({ prediction, showDetailLink }) {
 }
 
 /** One prediction, as returned by POST /predict or GET /predictions/{id}. Shows only what the server returned. */
-export default function ResultPanel({ prediction, showDetailLink = false }) {
+export default function ResultPanel({ prediction, showDetailLink = false, calibrated = null }) {
   const ref = prediction.source_reference || {};
   const selfValence = ref.self_reported_ratings?.valence;
   const ctx = resultContext(prediction);
@@ -51,43 +51,19 @@ export default function ResultPanel({ prediction, showDetailLink = false }) {
         <Notice tone={ctx.notice.tone} title={ctx.notice.title} announce={false}>{ctx.notice.text}</Notice>
       ) : null}
 
-      <div className="result-headline">
-        <span className="result-kicker">Model estimate</span>
-        <span className={`result-class ${prediction.prediction === 'low_valence' ? 'is-low' : 'is-high'}`}>
-          {classLabel(prediction.prediction)}
-        </span>
-        {CLASS_MEANING[prediction.prediction] ? <span className="result-explain">{CLASS_MEANING[prediction.prediction]}</span> : null}
+      <div className="result-top">
+        <ScoreGauge score={prediction.probabilities?.high_valence} label={prediction.prediction} calibrated={calibrated} />
+        <div className="stats-grid stats-compact">
+          <Stat label="Input" value={sourceLabel(prediction)} />
+          <Stat label="Segments analysed" value={prediction.segments_used} hint={`${prediction.segments_rejected} rejected by quality checks`} />
+          {ref.self_reported_label ? (
+            <Stat label="Participant's own valence" value={classLabel(ref.self_reported_label)}
+              hint={typeof selfValence === 'number' ? `${selfValence} on 1–9` : typeof ref.self_reported_valence === 'number' ? `${ref.self_reported_valence.toFixed(2)} on 0–7` : null} />
+          ) : null}
+        </div>
       </div>
-
-      <h3 className="subhead">Model probability</h3>
-      <ProbabilityBars probabilities={prediction.probabilities} />
-      <p className="field-hint prob-note">
-        The model&apos;s score for each category. It is not a calibrated confidence: 70% does not mean the estimate is
-        right 70% of the time.
-      </p>
-
-      <div className="stats-grid">
-        <Stat label="Input" value={sourceLabel(prediction)} />
-        <Stat label="Segments analysed" value={prediction.segments_used} hint={`${prediction.segments_rejected} rejected by quality checks`} />
-        {ctx.kind === 'deap' ? (
-          <Stat label="Participant's own rating" value={classLabel(ref.self_reported_label)}
-            hint={typeof selfValence === 'number' ? `Valence ${selfValence} on a 1–9 scale` : null} />
-        ) : null}
-        {ctx.kind === 'deap' && ref.self_reported_label ? (
-          <Stat label="Estimate matches rating" value={ref.self_reported_label === prediction.prediction ? 'Yes' : 'No'}
-            hint="One trial says little about accuracy" />
-        ) : null}
-      </div>
-
-      <details className="limits">
-        <summary>What this result can and cannot tell you</summary>
-        <ul className="limitations">
-          <li>For people the model had not seen, estimates were close to chance (about 50%) in exploratory evaluations.</li>
-          <li>It estimates a self-reported rating category, not what someone actually feels, and it is not a diagnosis.</li>
-          <li>The probability is the model&apos;s score, not a measure of how likely the estimate is to be correct.</li>
-        </ul>
-        {prediction.disclaimer ? <p className="meta small">{prediction.disclaimer}</p> : null}
-      </details>
+      {CLASS_MEANING[prediction.prediction] ? <p className="result-explain">{CLASS_MEANING[prediction.prediction]}</p> : null}
+      <p className="meta small">Research estimate of a self-reported rating, not a diagnosis.</p>
 
       <p className="meta">
         Result #{prediction.prediction_id} · {when(prediction.created_at)} · model {prediction.model?.version || 'not recorded'}

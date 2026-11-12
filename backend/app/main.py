@@ -7,7 +7,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import auth, ml, predictions, system
+from app.api.routes import auth, faced, ml, predictions, system, xai
 from app.core.config import Settings, get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
@@ -15,6 +15,8 @@ from app.database.session import Database
 from app.ml.factory import make_dataset
 from app.middleware.request_logging import RequestLoggingMiddleware
 from app.services.model_service import ModelService
+from app.services.faced_service import FacedService
+from app.xai.service import XaiService
 from app.services.training_service import TrainingService
 
 API_VERSION = "0.2.0"
@@ -55,6 +57,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.dataset = make_dataset(settings)
     app.state.model_service = ModelService(settings)
     app.state.training_service = TrainingService(settings, app.state.db, app.state.model_service)
+    app.state.faced_service = FacedService(settings)
+    app.state.xai_service = XaiService(settings, app.state.model_service, app.state.dataset, app.state.faced_service)
 
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True,
@@ -62,10 +66,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_exception_handlers(app)
 
     api = APIRouter(prefix=settings.api_prefix)
-    for module in (system, auth, ml, predictions):
+    for module in (system, auth, ml, predictions, faced, xai):
         api.include_router(module.router)
     app.include_router(api)
 
     settings.graphs_dir.mkdir(parents=True, exist_ok=True)
     app.mount(f"{settings.api_prefix}/graphs", StaticFiles(directory=settings.graphs_dir), name="graphs")
+    if settings.frontend_dist_dir and (settings.frontend_dist_dir / "index.html").exists():
+        # Mounted last, so every /api route keeps precedence. The frontend uses hash routes, so "/" is enough.
+        app.mount("/", StaticFiles(directory=settings.frontend_dist_dir, html=True), name="frontend")
     return app

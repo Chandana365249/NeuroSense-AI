@@ -3,6 +3,7 @@ import { api } from './api';
 import AuthScreen from './components/AuthScreen';
 import Layout from './components/Layout';
 import Analyze from './pages/Analyze';
+import Dashboard from './pages/Dashboard';
 import History from './pages/History';
 import Dataset from './pages/Dataset';
 import ModelEvidence from './pages/ModelEvidence';
@@ -127,11 +128,12 @@ function usePublicData() {
 function renderPage(route, auth, publicData) {
   const { path } = route;
   if (path === '/overview') return <Overview auth={auth} publicData={publicData} />;
-  if (path === '/analyze') return <Analyze auth={auth} publicData={publicData} />;
+  if (path === '/analyze') return <Analyze auth={auth} publicData={publicData} route={route} />;
+  if (path === '/dashboard') return <Dashboard auth={auth} />;
   if (path === '/history') return <History auth={auth} />;
-  if (path === '/model') return <ModelEvidence publicData={publicData} />;
+  if (path === '/model') return <ModelEvidence auth={auth} publicData={publicData} route={route} />;
   if (path === '/models') return <ModelRegistry auth={auth} publicData={publicData} />;
-  if (path === '/dataset') return <Dataset />;
+  if (path === '/dataset') return <Dataset auth={auth} route={route} />;
   if (path === '/system') return <SystemHealth auth={auth} />;
   if (path === '/admin/training') return <Training auth={auth} />;
   const result = matchPath('/results/:id', path);
@@ -140,7 +142,7 @@ function renderPage(route, auth, publicData) {
 }
 
 const TITLES = {
-  '/overview': 'Overview', '/analyze': 'Analyze EEG', '/history': 'History', '/model': 'Model & Evidence',
+  '/overview': 'Overview', '/analyze': 'Analyze EEG', '/dashboard': 'Dashboard', '/history': 'History', '/model': 'Models',
   '/models': 'Model registry', '/dataset': 'Dataset', '/system': 'System health',
   '/admin/training': 'Training', '/sign-in': 'Sign in',
 };

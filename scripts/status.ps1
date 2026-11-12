@@ -5,14 +5,20 @@
 $ErrorActionPreference = 'Continue'
 $ok = $true
 
+function Test-Connect([string]$Address, [int]$Port) {
+    # A real connection attempt. The Windows connection table can omit live listeners, so it is not relied on alone.
+    $client = New-Object System.Net.Sockets.TcpClient
+    try { return ($client.ConnectAsync($Address, $Port).Wait(1500) -and $client.Connected) } catch { return $false } finally { $client.Close() }
+}
+
 function Show-Port([int]$Port, [string]$Name) {
-    $listen = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
-    if (-not $listen) { Write-Host ("{0,-9} port {1}: not running" -f $Name, $Port); return $false }
-    $addresses = ($listen | Select-Object -ExpandProperty LocalAddress -Unique) -join ', '
-    $loopback = -not ($listen | Where-Object { $_.LocalAddress -notin '127.0.0.1', '::1' })
-    $note = if ($loopback) { 'loopback only' } else { 'WARNING: reachable beyond this computer' }
-    Write-Host ("{0,-9} port {1}: listening on {2} (PID {3}, {4})" -f $Name, $Port, $addresses, ($listen[0].OwningProcess), $note)
-    return $loopback
+    if (-not (Test-Connect '127.0.0.1' $Port)) { Write-Host ("{0,-9} port {1}: not running" -f $Name, $Port); return $false }
+    # Loopback-only is proved by trying this computer's own network addresses, not by reading the connection table.
+    $outside = @([System.Net.Dns]::GetHostAddresses($env:COMPUTERNAME) | Where-Object {
+            $_.AddressFamily -eq 'InterNetwork' -and -not $_.ToString().StartsWith('127.') -and (Test-Connect $_.ToString() $Port) })
+    $note = if ($outside.Count -eq 0) { 'loopback only' } else { "WARNING: reachable beyond this computer on $($outside -join ', ')" }
+    Write-Host ("{0,-9} port {1}: listening on 127.0.0.1 ({2})" -f $Name, $Port, $note)
+    return ($outside.Count -eq 0)
 }
 
 function Show-Http([string]$Url, [string]$Name) {

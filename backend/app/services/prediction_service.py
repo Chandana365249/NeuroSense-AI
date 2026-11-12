@@ -17,12 +17,24 @@ from app.preprocessing.eeg_preprocessor import SignalValidationError
 from app.repositories import AuditRepository, ModelRepository, PredictionRepository, SessionRepository
 from app.schemas.schemas import ModelRef, PredictionOut, PredictionRequest
 from app.services.model_service import ModelService
+from app.services.upload_store import save_upload
 
 logger = get_logger("prediction")
 
+FACED_SOURCE = "faced_reference"
+
+
+def _model_ref(item: Prediction) -> ModelRef | None:
+    """DEAP records point at the model registry. FACED models are never registered, so their record carries its own."""
+    if item.model:
+        return ModelRef(version=item.model.version, algorithm=item.model.algorithm, label_strategy=item.model.label_strategy)
+    ref = item.source_reference or {}
+    if item.input_source == FACED_SOURCE and ref.get("model_version"):
+        return ModelRef(version=ref["model_version"], algorithm=ref.get("algorithm", "unknown"), label_strategy=ref.get("label_rule", "unknown"))
+    return None
+
 
 def to_prediction_out(item: Prediction) -> PredictionOut:
-    model = item.model
     return PredictionOut(
         prediction_id=item.id,
         session_id=item.session_id,
@@ -34,9 +46,34 @@ def to_prediction_out(item: Prediction) -> PredictionOut:
         segments_rejected=item.segments_rejected,
         input_source=item.input_source,
         source_reference=item.source_reference,
-        model=ModelRef(version=model.version, algorithm=model.algorithm, label_strategy=model.label_strategy) if model else None,
+        model=_model_ref(item),
         disclaimer=DISCLAIMER,
     )
+
+
+def store_faced_prediction(db: Session, user: User, result: dict[str, Any], session_id: int | None, ip: str | None) -> Prediction:
+    """Save a FACED result in the shared history. model_id stays empty: the FACED model is not in the DEAP registry."""
+    if session_id is not None and not SessionRepository(db).get_for_user(session_id, user.id):
+        raise NotFoundError(f"Session {session_id} not found")
+    p_high = result["probability_high_valence"]
+    item = PredictionRepository(db).create(
+        user_id=user.id,
+        session_id=session_id,
+        model_id=None,
+        predicted_label=result["predicted_label"],
+        confidence=max(p_high, 1 - p_high),
+        probabilities={"high_valence": p_high, "low_valence": 1 - p_high},
+        segments_used=result["segments"],
+        segments_rejected=result["segments_rejected"],
+        input_source=FACED_SOURCE,
+        source_reference=result["provenance"],
+    )
+    AuditRepository(db).add("prediction.create", user.id, "prediction", str(item.id), {"source": FACED_SOURCE}, ip)
+    logger.info("Prediction stored", extra={"prediction_id": item.id, "user_id": user.id, "source": FACED_SOURCE,
+                                            "label": item.predicted_label, "segments": item.segments_used})
+    db.flush()
+    db.refresh(item)
+    return item
 
 
 class PredictionService:
@@ -115,6 +152,9 @@ class PredictionService:
             input_source=source,
             source_reference=source_reference,
         )
+        if source == "upload" and not (source_reference or {}).get("synthetic_test_signal"):
+            # Kept privately so the result can be explained later without re-sending the signal.
+            save_upload(self.settings, user.id, item.id, signal, request.eeg.sampling_rate, includes_baseline)
         self.audit.add("prediction.create", user.id, "prediction", str(item.id), {"source": source}, ip)
         logger.info("Prediction stored", extra={"prediction_id": item.id, "user_id": user.id, "source": source,
                                                 "label": result.label, "segments": result.segments_used})

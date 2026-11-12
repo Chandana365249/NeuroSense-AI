@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query, status
 
@@ -25,11 +25,12 @@ def predict(payload: PredictionRequest, user: CurrentUser, db: DbSession, settin
 
 
 @router.get("/predictions", response_model=PredictionListOut, tags=["history"], summary="Current user's prediction history")
-def list_predictions(user: CurrentUser, db: DbSession, limit: Limit = 50, offset: Offset = 0,
-                     session_id: int | None = None) -> PredictionListOut:
+def list_predictions(user: CurrentUser, db: DbSession, limit: Limit = 50, offset: Offset = 0, session_id: int | None = None,
+                     dataset: Literal["deap", "faced", "upload", "synthetic"] | None = None,
+                     q: Annotated[str | None, Query(max_length=40)] = None) -> PredictionListOut:
     repo = PredictionRepository(db)
-    items = repo.list_for_user(user.id, limit, offset, session_id)
-    return PredictionListOut(total=repo.count_for_user(user.id, session_id), items=[to_prediction_out(p) for p in items])
+    items = repo.list_for_user(user.id, limit, offset, session_id, dataset, q)
+    return PredictionListOut(total=repo.count_for_user(user.id, session_id, dataset, q), items=[to_prediction_out(p) for p in items])
 
 
 @router.get("/predictions/{prediction_id}", response_model=PredictionOut, tags=["history"])

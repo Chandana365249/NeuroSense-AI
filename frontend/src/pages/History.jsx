@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 import Card from '../components/Card';
 import LoadingBlock from '../components/LoadingBlock';
@@ -6,20 +6,22 @@ import Notice from '../components/Notice';
 import PageHeader from '../components/PageHeader';
 import RequireAuth from '../components/RequireAuth';
 import { classLabel, predictionLabel, pct, sourceLabel, when } from '../components/format';
-import { isSynthetic } from '../analysis';
+import { DATASET_LABELS, datasetKind, isSynthetic } from '../analysis';
 import { href } from '../router';
 
 const PAGE_SIZE = 20;
 const FETCH_SIZE = 200;       // the API's maximum page size
 const MAX_CHART_RECORDS = 5000;
 const HistoryCharts = lazy(() => import('../components/HistoryCharts'));
+const FILTERS = [['', 'All datasets'], ...Object.entries(DATASET_LABELS)];
+const SEARCH_DELAY_MS = 250;
 
 /** Fetches every page of the user's history (deduplicated by id) for the charts. */
-async function fetchAllHistory(token) {
+export async function fetchAllHistory(token, filters) {
   const byId = new Map();
   let total = 0;
   for (let offset = 0; offset < MAX_CHART_RECORDS; offset += FETCH_SIZE) {
-    const data = await api.predictions(token, { limit: FETCH_SIZE, offset });
+    const data = await api.predictions(token, { limit: FETCH_SIZE, offset, ...filters });
     total = data.total;
     for (const p of data.items) byId.set(p.prediction_id, p);
     if (!data.items.length || offset + FETCH_SIZE >= total) break;
@@ -27,21 +29,21 @@ async function fetchAllHistory(token) {
   return { items: [...byId.values()], total };
 }
 
-function HistoryInsights({ auth }) {
+function HistoryInsights({ auth, filters }) {
   const [state, setState] = useState({ status: 'loading' });
   const latest = useRef(0); // only the most recent load may update the state
   const load = useCallback(async () => {
     const run = ++latest.current;
     setState({ status: 'loading' });
     try {
-      const data = await fetchAllHistory(auth.token);
+      const data = await fetchAllHistory(auth.token, filters);
       if (run === latest.current) setState({ status: 'ready', ...data });
     } catch (err) {
       if (run !== latest.current) return;
       if (err.status === 401) auth.expire();
       else setState({ status: 'error', error: err.status === 0 ? 'The service is unreachable.' : 'Your history could not be summarised.' });
     }
-  }, [auth.token, auth.expire]);
+  }, [auth.token, auth.expire, filters]);
   useEffect(() => {
     load();
     return () => { latest.current += 1; };
@@ -51,7 +53,9 @@ function HistoryInsights({ auth }) {
   if (state.status === 'error') {
     return <Notice tone="error" title="Could not draw the charts" action={<button type="button" className="btn btn-secondary btn-small" onClick={load}>Retry</button>}>{state.error}</Notice>;
   }
-  if (!state.items.length) return <p className="muted empty">Charts appear once you have saved analyses.</p>;
+  if (!state.items.length) {
+    return <p className="muted empty">{filters.dataset || filters.q ? 'No analyses match these filters.' : 'Charts appear once you have saved analyses.'}</p>;
+  }
   const partial = state.items.length < state.total;
   return (
     <>
@@ -68,20 +72,23 @@ function HistoryInsights({ auth }) {
   );
 }
 
-function HistoryTable({ auth }) {
+function HistoryTable({ auth, filters }) {
   const [page, setPage] = useState(0);
   const [state, setState] = useState({ status: 'loading' });
+  const latest = useRef(0); // a slow response for an earlier filter or page must not replace a newer one
 
   const load = useCallback(async () => {
+    const run = ++latest.current;
     setState((s) => ({ ...s, status: 'loading' }));
     try {
-      const data = await api.predictions(auth.token, { limit: PAGE_SIZE, offset: page * PAGE_SIZE });
-      setState({ status: 'ready', data, page });
+      const data = await api.predictions(auth.token, { limit: PAGE_SIZE, offset: page * PAGE_SIZE, ...filters });
+      if (run === latest.current) setState({ status: 'ready', data, page });
     } catch (err) {
+      if (run !== latest.current) return;
       if (err.status === 401) auth.expire();
       else setState({ status: 'error', error: err.status === 0 ? 'The service is unreachable.' : err.message });
     }
-  }, [auth.token, auth.expire, page]);
+  }, [auth.token, auth.expire, page, filters]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -92,6 +99,7 @@ function HistoryTable({ auth }) {
   const { items, total } = state.data;
   const shown = state.page ?? 0; // the page whose rows are on screen (`page` may still be loading)
   if (!total) {
+    if (filters.dataset || filters.q) return <p className="muted empty">No analyses match these filters.</p>;
     return <p className="muted empty">No analyses yet. <a href={href('/analyze')}>Analyze an EEG recording</a> to start your history.</p>;
   }
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -114,6 +122,7 @@ function HistoryTable({ auth }) {
               <th scope="col">Estimated category</th>
               <th scope="col">Model probability</th>
               <th scope="col">Self-reported category</th>
+              <th scope="col">Dataset</th>
               <th scope="col"><span className="visually-hidden">Details</span></th>
             </tr>
           </thead>
@@ -126,6 +135,7 @@ function HistoryTable({ auth }) {
                 <td>{predictionLabel(p)}</td>
                 <td className="nowrap">{isSynthetic(p) ? 'Not shown (synthetic)' : pct(p.confidence)}</td>
                 <td>{p.source_reference?.self_reported_label ? classLabel(p.source_reference.self_reported_label) : '—'}</td>
+                <td className="nowrap"><span className={`tag dataset-${datasetKind(p)}`}>{DATASET_LABELS[datasetKind(p)]}</span></td>
                 <td className="nowrap"><a href={href(`/results/${p.prediction_id}`)}>View<span className="visually-hidden"> prediction {p.prediction_id}</span></a></td>
               </tr>
             ))}
@@ -139,18 +149,46 @@ function HistoryTable({ auth }) {
         <button type="button" className="btn btn-secondary btn-small" onClick={() => { if (canNext) setPage((p) => p + 1); }}
           aria-disabled={!canNext || undefined}>Next</button>
       </nav>
-      <p className="meta small">Model probability is the model&apos;s probability for its estimated category, not a measure of accuracy.</p>
+      <p className="meta small">Model probability is the model&apos;s probability for its estimated category, not a certainty.</p>
     </>
   );
 }
 
+function HistoryFilters({ dataset, query, onDataset, onQuery }) {
+  return (
+    <div className="history-filters" role="search" aria-label="Filter your history">
+      <label className="field">
+        <span>Dataset</span>
+        <select value={dataset} onChange={(e) => onDataset(e.target.value)}>
+          {FILTERS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+        </select>
+      </label>
+      <label className="field">
+        <span>Search participants</span>
+        <input type="search" value={query} maxLength={40} onChange={(e) => onQuery(e.target.value)} placeholder="e.g. s07 or sub-012" />
+      </label>
+    </div>
+  );
+}
+
 export default function History({ auth }) {
+  const [dataset, setDataset] = useState('');
+  const [query, setQuery] = useState('');
+  const [q, setQ] = useState(''); // the search actually sent, once typing pauses
+  useEffect(() => {
+    const t = setTimeout(() => setQ(query.trim()), SEARCH_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [query]);
+  const filters = useMemo(() => ({ dataset, q }), [dataset, q]);
   return (
     <>
       <PageHeader title="History" subtitle="Your saved analyses. Open one to see its full result." />
       <RequireAuth auth={auth} reason="Sign in to see your analysis history.">
-        <Card><HistoryTable auth={auth} /></Card>
-        <Card title="Your history in charts" titleId="history-charts"><HistoryInsights auth={auth} /></Card>
+        <Card>
+          <HistoryFilters dataset={dataset} query={query} onDataset={setDataset} onQuery={setQuery} />
+          <HistoryTable key={`${dataset}|${q}`} auth={auth} filters={filters} />
+        </Card>
+        <Card title="Your history in charts" titleId="history-charts"><HistoryInsights auth={auth} filters={filters} /></Card>
       </RequireAuth>
     </>
   );
